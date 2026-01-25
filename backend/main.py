@@ -34,7 +34,7 @@ def health_check():
 app.include_router(simulator.router, prefix="/api", dependencies=[Depends(validate_auth)]) 
 app.include_router(walker.router, prefix="/api", dependencies=[Depends(validate_auth)])
 app.include_router(files.router, prefix="/api", dependencies=[Depends(validate_auth)])
-app.include_router(settings.router, prefix="/api", dependencies=[Depends(validate_auth)])
+app.include_router(settings.router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn

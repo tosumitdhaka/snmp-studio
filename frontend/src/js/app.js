@@ -2,55 +2,146 @@ const API_BASE = "/api";
 const HTML_CACHE = {}; 
 let currentModule = null; 
 
-// Global State
 window.AppState = {
     simulator: null,
     logs: []
 };
 
+// --- 1. Global Fetch Interceptor (Injects Token) ---
+const originalFetch = window.fetch;
+window.fetch = async function(url, options = {}) {
+    
+    // Add Token if exists
+    const token = sessionStorage.getItem("snmp_token");
+    if (token) {
+        // FIX: Ensure headers object exists before accessing it
+        if (!options.headers) options.headers = {};
+
+        // Handle Headers object vs simple object
+        if (options.headers instanceof Headers) {
+            options.headers.append("X-Auth-Token", token);
+        } else {
+            options.headers["X-Auth-Token"] = token;
+        }
+    }
+
+    const response = await originalFetch(url, options);
+
+    // Handle 401 (Session Expired) globally
+    if (response.status === 401 && !url.includes("/login")) {
+        logout(false); 
+    }
+    return response;
+};
+
+// --- 2. Auth Logic ---
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Initialize Auth Flow
     initAuth();
 });
 
 async function initAuth() {
-    const overlay = document.getElementById("auth-overlay");
+    const loginScreen = document.getElementById("login-screen");
     const wrapper = document.getElementById("wrapper");
-    const statusText = document.getElementById("auth-status-text");
+    const token = sessionStorage.getItem("snmp_token");
 
-    try {
-        // Attempt to hit a protected endpoint
-        const res = await fetch('/api/settings/check');
-        
-        if (res.ok) {
-            // 1. Stop Overlay from blocking clicks immediately
-            overlay.style.pointerEvents = 'none';
-            
-            // 2. Reveal the App (behind the overlay)
-            wrapper.style.display = 'flex';
-            
-            // 3. Initialize Logic (Sidebar, Routing) immediately
-            initializeAppLogic();
-
-            // 4. Start Fade Out
-            overlay.style.transition = "opacity 0.5s ease";
-            overlay.style.opacity = '0';
-            
-            // 5. Remove from DOM flow after fade
-            setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 500);
-            
-        } else {
-            statusText.textContent = "Authentication Required. Please refresh.";
-            statusText.className = "mt-3 text-danger fw-bold";
+    if (!token) {
+        // No token? Show Login
+        loginScreen.style.display = "flex";
+        wrapper.style.display = "none";
+    } else {
+        // Token exists? Verify it
+        try {
+            const res = await fetch('/api/settings/check');
+            if (res.ok) {
+                const data = await res.json();
+                updateUserUI(data.user);
+                showApp();
+            } else {
+                logout(false);
+            }
+        } catch (e) {
+            console.error("Auth Check Failed", e);
+            // Allow retry if backend is just temporarily down? 
+            // For now, assume session invalid if check fails
+            logout(false); 
         }
-    } catch (e) {
-        statusText.textContent = "Connection Failed. Backend offline?";
-        statusText.className = "mt-3 text-danger fw-bold";
     }
 }
 
+window.handleLogin = async function(e) {
+    e.preventDefault();
+    console.log("Attempting Login..."); // Debug
+
+    const user = document.getElementById("login-user").value;
+    const pass = document.getElementById("login-pass").value;
+    const btn = document.getElementById("login-btn");
+    const err = document.getElementById("login-error");
+
+    btn.disabled = true;
+    err.classList.add("d-none");
+
+    try {
+        const res = await originalFetch('/api/settings/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, password: pass })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            console.log("Login Success. Token received:", data.token ? "YES" : "NO");
+            sessionStorage.setItem("snmp_token", data.token);
+            updateUserUI(data.username);
+            
+            // Explicitly call showApp and log it
+            showApp(); 
+        } else {
+            console.warn("Login Failed:", data);
+            err.textContent = data.detail || "Login Failed";
+            err.classList.remove("d-none");
+        }
+    } catch (e) {
+        console.error("Login Exception:", e);
+        err.textContent = "Connection Error";
+        err.classList.remove("d-none");
+    } finally {
+        btn.disabled = false;
+    }
+};
+
+function showApp() {
+    console.log("Switching to App View...");
+    const loginScreen = document.getElementById("login-screen");
+    const wrapper = document.getElementById("wrapper");
+
+    if (loginScreen) {
+        // FIX: Remove d-flex class to ensure it hides
+        loginScreen.classList.remove("d-flex"); 
+        loginScreen.style.display = "none";
+    } else {
+        console.error("CRITICAL: Element #login-screen not found. Did you update index.html?");
+    }
+
+    if (wrapper) {
+        wrapper.style.display = "flex";
+    }
+
+    initializeAppLogic();
+}
+
+window.logout = async function(callApi = true) {
+    if (callApi) {
+        try { await fetch('/api/settings/logout', { method: 'POST' }); } catch(e){}
+    }
+    sessionStorage.removeItem("snmp_token");
+    window.location.reload();
+};
+
+function updateUserUI(username) {
+    const el = document.getElementById("nav-user-name");
+    if(el) el.textContent = username;
+}
 
 function initializeAppLogic() {
     // 1. Sidebar Toggle
@@ -130,7 +221,6 @@ async function loadModule(moduleName) {
     }
 }
 
-// ... (keep checkBackendHealth as is) ...
 async function checkBackendHealth() {
     const badge = document.getElementById("backend-status");
     try {

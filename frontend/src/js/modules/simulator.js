@@ -23,7 +23,7 @@ window.SimulatorModule = {
 
         // 3. Start Polling
         this.fetchStatus();
-        this.intervalId = setInterval(() => this.fetchStatus(), 2000);
+        this.intervalId = setInterval(() => this.fetchStatus(), 10000);
     },
 
     destroy: function() {
