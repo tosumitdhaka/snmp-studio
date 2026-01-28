@@ -1,4 +1,4 @@
-# SNMP WALK UTILS (In Development)
+# SNMP STUDIO (In Development)
 
 ## 1. SNMP Walk Simulator
 Load a custom mib file, parse it and use it to simulate response to any SNMP Walk commands on related OIDs.
@@ -7,3 +7,11 @@ Load a custom mib file, parse it and use it to simulate response to any SNMP Wal
 ## 2. SNMP Walk Decoder
 Performs SNMP Walk on a UDP endpoint, parses the data map it to json format.
 - Uses custom environment variables for IP, port, MIB location, etc
+
+## 3. SNMP Trap Receiver
+
+
+## 4. SNMP Trap Sender
+
+
+## 5. MIB Fle Manager

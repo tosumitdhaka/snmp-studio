@@ -1,11 +1,9 @@
-
 window.SimulatorModule = {
     intervalId: null,
 
     init: function() {
         this.destroy();
         
-        // 1. Restore Logs
         const area = document.getElementById("sim-log-area");
         if (area && window.AppState.logs.length > 0) {
             area.innerHTML = window.AppState.logs.join("");
@@ -14,14 +12,14 @@ window.SimulatorModule = {
             area.innerHTML = '<div class="text-muted small p-2">Waiting for events...</div>';
         }
 
-        // 2. Load Cached State
         if (window.AppState.simulator) {
             this.updateUI(window.AppState.simulator);
         } else {
             this.setButtons(false); 
         }
 
-        // 3. Start Polling
+        this.loadCustomData();
+
         this.fetchStatus();
         this.intervalId = setInterval(() => this.fetchStatus(), 10000);
     },
@@ -33,84 +31,49 @@ window.SimulatorModule = {
         }
     },
 
-    fetchStatus: async function() {
+    loadCustomData: async function() {
+        const editor = document.getElementById('custom-data-editor');
+        if (!editor) return;
+
         try {
-            const res = await fetch('/api/simulator/status');
-            if (!res.ok) return;
+            const res = await fetch('/api/files/data');
             const data = await res.json();
-            
-            // Update Cache
-            window.AppState.simulator = data;
-            
-            this.updateUI(data);
+            editor.value = JSON.stringify(data, null, 2);
         } catch (e) {
-            console.error("Sim status error", e);
+            console.error('Failed to load custom data:', e);
+            editor.value = '{}';
         }
     },
 
-    updateUI: function(data) {
-        const badge = document.getElementById("sim-badge");
-        const stateText = document.getElementById("sim-state-text");
-        const detailText = document.getElementById("sim-detail-text");
-        
-        // Guard for navigation
-        if (!badge) return;
+    saveCustomData: async function() {
+        const editor = document.getElementById('custom-data-editor');
+        const content = editor.value;
 
-        if (data.running) {
-            badge.className = "badge bg-success";
-            badge.textContent = "RUNNING";
-            stateText.textContent = "Online";
-            stateText.className = "mb-0 text-success fw-bold";
-            detailText.innerHTML = `Listening on <strong>UDP ${data.port}</strong> <br> Community: <code>${data.community}</code> <br> PID: ${data.pid}`;
+        try {
+            const json = JSON.parse(content);
+
+            const res = await fetch('/api/files/data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(json)
+            });
+
+            const data = await res.json();
+
+            this.log(`<span class="text-success">Custom data saved: ${data.message}</span>`);
             
-            this.setButtons(true);
-            
-            // Sync inputs (only if not focused)
-            const pInput = document.getElementById("sim-config-port");
-            const cInput = document.getElementById("sim-config-comm");
-            if(pInput && document.activeElement !== pInput) pInput.value = data.port;
-            if(cInput && document.activeElement !== cInput) cInput.value = data.community;
+            const banner = document.createElement('div');
+            banner.className = 'alert alert-success alert-dismissible fade show position-fixed';
+            banner.style.cssText = 'top: 80px; right: 20px; z-index: 9999;';
+            banner.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i> ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(banner);
+            setTimeout(() => banner.remove(), 3000);
 
-        } else {
-            badge.className = "badge bg-secondary";
-            badge.textContent = "STOPPED";
-            stateText.textContent = "Offline";
-            stateText.className = "mb-0 text-secondary fw-bold";
-            detailText.textContent = "Service is stopped.";
-            
-            this.setButtons(false);
-        }
-    },
-
-    setButtons: function(isRunning) {
-        const btnStart = document.getElementById("btn-start");
-        const btnStop = document.getElementById("btn-stop");
-        const btnRestart = document.getElementById("btn-restart");
-        
-        if(!btnStart) return;
-
-        // Force boolean state to avoid "undefined" issues
-        btnStart.disabled = isRunning;
-        btnStop.disabled = !isRunning;
-        btnRestart.disabled = !isRunning;
-    },
-    
-    log: function(msg) {
-        const area = document.getElementById("sim-log-area");
-        const time = new Date().toLocaleTimeString();
-        const html = `<div class="border-bottom py-1 px-2"><span class="text-muted small">[${time}]</span> ${msg}</div>`;
-        
-        // Save to State (Keep last 50 lines)
-        window.AppState.logs.push(html);
-        if (window.AppState.logs.length > 50) window.AppState.logs.shift();
-
-        // Update UI if visible
-        if(area) {
-            // Remove "Waiting..." placeholder if it exists
-            if(area.textContent.includes("Waiting for events")) area.innerHTML = "";
-            
-            area.innerHTML += html;
-            area.scrollTop = area.scrollHeight;
+        } catch (e) {
+            alert('Invalid JSON format!\n\n' + e.message);
         }
     },
 
@@ -138,5 +101,75 @@ window.SimulatorModule = {
         this.log("Restarting...");
         await this.stop();
         setTimeout(() => this.start(), 1000);
+    },
+
+    fetchStatus: async function() {
+        try {
+            const res = await fetch('/api/simulator/status');
+            if (!res.ok) return;
+            const data = await res.json();
+            
+            window.AppState.simulator = data;
+            this.updateUI(data);
+        } catch (e) {
+            console.error("Sim status error", e);
+        }
+    },
+
+    updateUI: function(data) {
+        const badge = document.getElementById("sim-badge");
+        const stateText = document.getElementById("sim-state-text");
+        const detailText = document.getElementById("sim-detail-text");
+        
+        if (!badge) return;
+
+        if (data.running) {
+            badge.className = "badge bg-success";
+            badge.textContent = "RUNNING";
+            stateText.textContent = "Online";
+            stateText.className = "mb-0 text-success fw-bold";
+            detailText.innerHTML = `Listening on <strong>UDP ${data.port}</strong> <br> Community: <code>${data.community}</code> <br> PID: ${data.pid}`;
+            
+            this.setButtons(true);
+            
+            const pInput = document.getElementById("sim-config-port");
+            const cInput = document.getElementById("sim-config-comm");
+            if(pInput && document.activeElement !== pInput) pInput.value = data.port;
+            if(cInput && document.activeElement !== cInput) cInput.value = data.community;
+        } else {
+            badge.className = "badge bg-secondary";
+            badge.textContent = "STOPPED";
+            stateText.textContent = "Offline";
+            stateText.className = "mb-0 text-secondary fw-bold";
+            detailText.textContent = "Service is stopped.";
+            
+            this.setButtons(false);
+        }
+    },
+
+    setButtons: function(isRunning) {
+        const btnStart = document.getElementById("btn-start");
+        const btnStop = document.getElementById("btn-stop");
+        const btnRestart = document.getElementById("btn-restart");
+        
+        if(!btnStart) return;
+        btnStart.disabled = isRunning;
+        btnStop.disabled = !isRunning;
+        btnRestart.disabled = !isRunning;
+    },
+
+    log: function(msg) {
+        const area = document.getElementById("sim-log-area");
+        const time = new Date().toLocaleTimeString();
+        const html = `<div class="border-bottom py-1 px-2"><span class="text-muted small">[${time}]</span> ${msg}</div>`;
+        
+        window.AppState.logs.push(html);
+        if (window.AppState.logs.length > 50) window.AppState.logs.shift();
+
+        if(area) {
+            if(area.textContent.includes("Waiting for events")) area.innerHTML = "";
+            area.innerHTML += html;
+            area.scrollTop = area.scrollHeight;
+        }
     }
 };

@@ -7,17 +7,11 @@ window.AppState = {
     logs: []
 };
 
-// --- 1. Global Fetch Interceptor (Injects Token) ---
 const originalFetch = window.fetch;
 window.fetch = async function(url, options = {}) {
-    
-    // Add Token if exists
     const token = sessionStorage.getItem("snmp_token");
     if (token) {
-        // FIX: Ensure headers object exists before accessing it
         if (!options.headers) options.headers = {};
-
-        // Handle Headers object vs simple object
         if (options.headers instanceof Headers) {
             options.headers.append("X-Auth-Token", token);
         } else {
@@ -26,15 +20,14 @@ window.fetch = async function(url, options = {}) {
     }
 
     const response = await originalFetch(url, options);
-
-    // Handle 401 (Session Expired) globally
+    
     if (response.status === 401 && !url.includes("/login")) {
         logout(false); 
     }
+
     return response;
 };
 
-// --- 2. Auth Logic ---
 document.addEventListener("DOMContentLoaded", () => {
     initAuth();
 });
@@ -45,11 +38,9 @@ async function initAuth() {
     const token = sessionStorage.getItem("snmp_token");
 
     if (!token) {
-        // No token? Show Login
         loginScreen.style.display = "flex";
         wrapper.style.display = "none";
     } else {
-        // Token exists? Verify it
         try {
             const res = await fetch('/api/settings/check');
             if (res.ok) {
@@ -61,8 +52,6 @@ async function initAuth() {
             }
         } catch (e) {
             console.error("Auth Check Failed", e);
-            // Allow retry if backend is just temporarily down? 
-            // For now, assume session invalid if check fails
             logout(false); 
         }
     }
@@ -70,8 +59,6 @@ async function initAuth() {
 
 window.handleLogin = async function(e) {
     e.preventDefault();
-    console.log("Attempting Login..."); // Debug
-
     const user = document.getElementById("login-user").value;
     const pass = document.getElementById("login-pass").value;
     const btn = document.getElementById("login-btn");
@@ -90,19 +77,14 @@ window.handleLogin = async function(e) {
         const data = await res.json();
 
         if (res.ok) {
-            console.log("Login Success. Token received:", data.token ? "YES" : "NO");
             sessionStorage.setItem("snmp_token", data.token);
             updateUserUI(data.username);
-            
-            // Explicitly call showApp and log it
             showApp(); 
         } else {
-            console.warn("Login Failed:", data);
             err.textContent = data.detail || "Login Failed";
             err.classList.remove("d-none");
         }
     } catch (e) {
-        console.error("Login Exception:", e);
         err.textContent = "Connection Error";
         err.classList.remove("d-none");
     } finally {
@@ -111,16 +93,12 @@ window.handleLogin = async function(e) {
 };
 
 function showApp() {
-    console.log("Switching to App View...");
     const loginScreen = document.getElementById("login-screen");
     const wrapper = document.getElementById("wrapper");
 
     if (loginScreen) {
-        // FIX: Remove d-flex class to ensure it hides
         loginScreen.classList.remove("d-flex"); 
         loginScreen.style.display = "none";
-    } else {
-        console.error("CRITICAL: Element #login-screen not found. Did you update index.html?");
     }
 
     if (wrapper) {
@@ -144,7 +122,6 @@ function updateUserUI(username) {
 }
 
 function initializeAppLogic() {
-    // 1. Sidebar Toggle
     const sidebarToggle = document.querySelector('#sidebarToggle');
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', e => {
@@ -153,7 +130,6 @@ function initializeAppLogic() {
         });
     }
 
-    // 2. Health & Routing
     checkBackendHealth();
     window.addEventListener('hashchange', handleRouting);
     handleRouting(); 
@@ -162,18 +138,15 @@ function initializeAppLogic() {
 async function handleRouting() {
     let moduleName = window.location.hash.substring(1) || 'dashboard';
     
-    // 1. Cleanup Previous Module
     if (currentModule && typeof currentModule.destroy === 'function') {
         currentModule.destroy();
     }
     
-    // 2. Update Sidebar Active State
     document.querySelectorAll('.list-group-item').forEach(el => {
         el.classList.remove('active');
         if(el.getAttribute('href') === `#${moduleName}`) el.classList.add('active');
     });
 
-    // 3. Load Content
     await loadModule(moduleName);
 }
 
@@ -185,9 +158,11 @@ async function loadModule(moduleName) {
         'dashboard': 'System Overview',
         'simulator': 'Simulator Manager',
         'walker': 'Walk & Parse Studio',
-        'files': 'File Manager',
+        'traps': 'Trap Receiver & Sender',
+        'mibs': 'MIB Manager',
         'settings': 'Settings'
     };
+
     title.textContent = titles[moduleName] || 'SNMP Studio';
 
     if (!HTML_CACHE[moduleName]) {
@@ -204,17 +179,17 @@ async function loadModule(moduleName) {
 
     container.innerHTML = HTML_CACHE[moduleName];
 
-    // 4. Initialize Logic
     const moduleMap = {
         'dashboard': window.DashboardModule,
         'simulator': window.SimulatorModule,
         'walker': window.WalkerModule,
-        'files': window.FilesModule,
+        'traps': window.TrapsModule,
+        'mibs': window.MibsModule,
         'settings': window.SettingsModule
     };
 
     if (moduleMap[moduleName]) {
-        currentModule = moduleMap[moduleName]; // Set active module
+        currentModule = moduleMap[moduleName];
         if(typeof currentModule.init === 'function') {
             currentModule.init();
         }
@@ -225,9 +200,11 @@ async function checkBackendHealth() {
     const badge = document.getElementById("backend-status");
     try {
         const res = await fetch(`${API_BASE}/meta`);
-        await res.json();
+        const data = await res.json();
         badge.className = "badge bg-success";
         badge.textContent = "Online";
+        
+        document.getElementById("app-version").textContent = `v${data.version}`;
     } catch (e) {
         badge.className = "badge bg-danger";
         badge.textContent = "Offline";

@@ -1,4 +1,5 @@
 <div class="row">
+    <!-- LEFT: Status & Config -->
     <div class="col-md-5">
         <!-- Status Card -->
         <div class="card mb-3 shadow-sm">
@@ -32,7 +33,7 @@
         </div>
 
         <!-- Config Card -->
-        <div class="card shadow-sm">
+        <div class="card shadow-sm mb-3">
             <div class="card-header py-2">Configuration</div>
             <div class="card-body">
                 <div class="row g-2">
@@ -47,14 +48,33 @@
                 </div>
             </div>
         </div>
+
+        <!-- Custom Data Card -->
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <span><i class="fas fa-database me-2 text-info"></i> Custom Data</span>
+                <button class="btn btn-sm btn-success" onclick="SimulatorModule.saveCustomData()">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="p-2 bg-light border-bottom small text-muted">
+                    <i class="fas fa-info-circle"></i> Override OID values (e.g., <code>IF-MIB::ifSpeed.1</code>)
+                </div>
+                <textarea id="custom-data-editor" 
+                          class="form-control border-0 font-monospace" 
+                          style="resize: none; height: 200px; font-size: 0.85rem;"
+                          placeholder='{\n  "IF-MIB::ifSpeed.1": 1000,\n  "IF-MIB::ifDescr.1": "eth0"\n}'></textarea>
+            </div>
+        </div>
     </div>
 
-    <!-- Log Column -->
+    <!-- RIGHT: Activity Log -->
     <div class="col-md-7">
         <div class="card h-100 shadow-sm">
             <div class="card-header py-2 bg-light">Activity Log</div>
             <div class="card-body p-0">
-                <div class="p-2 font-monospace small bg-white" style="height: 300px; overflow-y: auto;" id="sim-log-area">
+                <div class="p-2 font-monospace small bg-white" style="height: 600px; overflow-y: auto;" id="sim-log-area">
                     <div class="text-muted">Waiting for events...</div>
                 </div>
             </div>

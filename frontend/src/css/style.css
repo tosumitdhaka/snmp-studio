@@ -1,14 +1,14 @@
 :root {
     --sidebar-width: 260px;
     --sidebar-mini-width: 70px;
-    --sidebar-bg: #1e293b;       /* Modern Slate Dark */
-    --sidebar-text: #94a3b8;     /* Muted Text */
-    --sidebar-active: #3b82f6;   /* Bright Blue */
+    --sidebar-bg: #1e293b;
+    --sidebar-text: #94a3b8;
+    --sidebar-active: #3b82f6;
     --header-bg: #ffffff;
     --header-text: #1e293b;
 }
 
-/* --- Layout Fix --- */
+/* Layout Fix */
 body {
     overflow-x: hidden;
     background-color: #f1f5f9;
@@ -20,26 +20,26 @@ body {
     display: flex;
     width: 100%;
     align-items: stretch;
-    height: 100vh; /* Force full height */
-    overflow: hidden; /* Prevent body scroll, handle inside content */
+    height: 100vh;
+    overflow: hidden;
 }
 
 #page-content-wrapper {
     width: 100%;
-    overflow-y: auto; /* Scroll content independently of sidebar */
+    overflow-y: auto;
     height: 100vh;
 }
 
-/* --- Sidebar Styling --- */
+/* Sidebar Styling */
 #sidebar-wrapper {
     width: var(--sidebar-width);
     background-color: var(--sidebar-bg);
-    transition: width 0.3s ease; /* Smooth transition for width */
+    transition: width 0.3s ease;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Hide content when collapsed */
-    white-space: nowrap; /* Prevent text wrapping during transition */
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 #sidebar-wrapper .sidebar-heading {
@@ -77,45 +77,47 @@ body {
 }
 
 #sidebar-wrapper .list-group-item i {
-    min-width: 30px; /* Fixed width for icons ensures alignment */
+    min-width: 30px;
     text-align: center;
     margin-right: 10px;
     font-size: 1.1rem;
 }
 
-/* --- Collapsed State (Mini Sidebar) --- */
+/* Collapsed State */
 body.sb-sidenav-toggled #sidebar-wrapper {
     width: var(--sidebar-mini-width);
 }
 
-/* Hide text labels and version info when collapsed */
 body.sb-sidenav-toggled #sidebar-wrapper .sidebar-heading span,
 body.sb-sidenav-toggled #sidebar-wrapper .list-group-item span,
 body.sb-sidenav-toggled #sidebar-wrapper #app-version {
     display: none;
 }
 
-/* Center the Heading Icon */
 body.sb-sidenav-toggled #sidebar-wrapper .sidebar-heading {
     text-align: center;
     padding: 1.5rem 0;
 }
 
-/* Center the Menu Icons */
 body.sb-sidenav-toggled #sidebar-wrapper .list-group-item {
     padding: 1rem 0;
     justify-content: center;
 }
 
 body.sb-sidenav-toggled #sidebar-wrapper .list-group-item i {
-    margin-right: 0; /* Remove margin when icon is alone */
+    margin-right: 0;
 }
 
-/* --- Utilities --- */
+/* Utilities */
 .cursor-pointer { cursor: pointer; }
-pre { background: #212529; color: #f8f9fa; border-radius: 4px; }
 
-/* --- Unified Card Headers --- */
+pre { 
+    background: #212529; 
+    color: #f8f9fa; 
+    border-radius: 4px; 
+}
+
+/* Unified Card Headers */
 .card {
     border: none;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -130,18 +132,20 @@ pre { background: #212529; color: #f8f9fa; border-radius: 4px; }
     padding: 1rem 1.25rem;
 }
 
-/* --- Dashboard Grid --- */
+/* Dashboard Grid */
 .tool-card {
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
     height: 100%;
     border: 1px solid #e2e8f0;
 }
+
 .tool-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     border-color: var(--sidebar-active);
 }
+
 .tool-icon {
     width: 50px;
     height: 50px;
@@ -150,4 +154,41 @@ pre { background: #212529; color: #f8f9fa; border-radius: 4px; }
     justify-content: center;
     border-radius: 12px;
     margin-bottom: 1rem;
+}
+
+/* Trap VarBind List Styling */
+.varbind-list {
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+}
+
+.varbind-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.varbind-list::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 2px;
+}
+
+/* Trap Type Badges */
+.badge.bg-success {
+    background-color: #10b981 !important;
+}
+
+.badge.bg-danger {
+    background-color: #ef4444 !important;
+}
+
+.badge.bg-warning {
+    background-color: #f59e0b !important;
+    color: #000 !important;
+}
+
+/* Sticky Table Headers */
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
