@@ -172,18 +172,40 @@ window.SimulatorModule = {
         btnRestart.disabled = !isRunning;
     },
 
-    log: function(msg) {
+    log: function(msg, type = 'info') {
         const area = document.getElementById("sim-log-area");
         const time = new Date().toLocaleTimeString();
-        const html = `<div class="border-bottom py-1 px-2"><span class="text-muted small">[${time}]</span> ${msg}</div>`;
+        
+        let icon = 'fa-info-circle';
+        let color = 'text-muted';
+        
+        if (type === 'success') {
+            icon = 'fa-check-circle';
+            color = 'text-success';
+        } else if (type === 'error') {
+            icon = 'fa-exclamation-circle';
+            color = 'text-danger';
+        } else if (type === 'warning') {
+            icon = 'fa-exclamation-triangle';
+            color = 'text-warning';
+        }
+        
+        const html = `
+            <div class="border-bottom py-2 px-2">
+                <span class="text-muted small">[${time}]</span>
+                <i class="fas ${icon} ${color} ms-2"></i>
+                <span class="ms-2">${msg}</span>
+            </div>
+        `;
         
         window.AppState.logs.push(html);
-        if (window.AppState.logs.length > 50) window.AppState.logs.shift();
+        if (window.AppState.logs.length > 100) window.AppState.logs.shift();
 
         if(area) {
             if(area.textContent.includes("Waiting for events")) area.innerHTML = "";
             area.innerHTML += html;
             area.scrollTop = area.scrollHeight;
         }
-    }
+    },
+
 };

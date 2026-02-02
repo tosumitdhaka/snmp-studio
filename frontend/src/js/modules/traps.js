@@ -17,6 +17,8 @@ window.TrapsModule = {
         if (this.pollInterval) clearInterval(this.pollInterval);
     },
 
+    // ==================== Trap List Management ====================
+
     loadTrapList: async function() {
         try {
             const res = await fetch('/api/mibs/traps');
@@ -94,6 +96,8 @@ window.TrapsModule = {
         
         return "String";
     },
+
+    // ==================== VarBind Picker ====================
 
     showVarBindPicker: async function() {
         if (this.allObjects.length === 0) {
@@ -201,6 +205,8 @@ window.TrapsModule = {
         return 'String';
     },
 
+    // ==================== Trap Form Management ====================
+
     loadSelectedTrap: function() {
         const trapData = sessionStorage.getItem('selectedTrap');
         if (!trapData) {
@@ -222,21 +228,6 @@ window.TrapsModule = {
         } catch (e) {
             console.error('Failed to load selected trap:', e);
         }
-    },
-
-    showNotification: function(message, type = 'info') {
-        const banner = document.createElement('div');
-        banner.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-        banner.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px;';
-        banner.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(banner);
-        
-        setTimeout(() => {
-            banner.remove();
-        }, 3000);
     },
 
     addVarbind: function(oid="", type="String", val="") {
@@ -273,7 +264,7 @@ window.TrapsModule = {
 
     resetForm: function() {
         document.getElementById("vb-container").innerHTML = '<div class="text-center text-muted small py-2" id="vb-empty">No VarBinds added</div>';
-        document.getElementById("ts-oid").value = "";
+        document.getElementById("ts-oid").value = "IF-MIB::linkDown";
         
         const select = document.getElementById("ts-trap-select");
         if (select) select.value = "";
@@ -281,28 +272,59 @@ window.TrapsModule = {
         this.addVarbind("SNMPv2-MIB::sysUpTime.0", "TimeTicks", "0");
     },
 
+    // ==================== Trap Sending ====================
+
     sendTrap: async function(e) {
         e.preventDefault();
+        
+        // Validate trap OID
+        const trapOid = document.getElementById("ts-oid").value.trim();
+        if (!trapOid) {
+            alert('Please enter a Trap OID or select a trap from the dropdown');
+            return;
+        }
+        
+        // Validate VarBinds
+        const varbindRows = document.querySelectorAll("#vb-container .card");
+        if (varbindRows.length === 0) {
+            alert('Please add at least one VarBind');
+            return;
+        }
+        
+        let hasValidVarbind = false;
+        for (const row of varbindRows) {
+            const oid = row.querySelector(".vb-oid").value.trim();
+            const value = row.querySelector(".vb-val").value.trim();
+            if (oid && value) {
+                hasValidVarbind = true;
+                break;
+            }
+        }
+        
+        if (!hasValidVarbind) {
+            alert('Please provide OID and value for at least one VarBind');
+            return;
+        }
+        
         const btn = e.target.querySelector("button[type='submit']");
         const originalText = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
         try {
-            // 1. Get trap OID and resolve if needed
-            let trapOid = document.getElementById("ts-oid").value.trim();
+            // 1. Resolve trap OID first
+            let resolvedTrapOid = trapOid;
             
             if (trapOid.includes("::")) {
                 console.log(`[TRAP] Resolving trap OID: ${trapOid}`);
                 const trapRes = await fetch(`/api/mibs/resolve?oid=${encodeURIComponent(trapOid)}&mode=numeric`);
                 const trapData = await trapRes.json();
-                trapOid = trapData.output;
-                console.log(`[TRAP] Resolved to: ${trapOid}`);
+                resolvedTrapOid = trapData.output;
+                console.log(`[TRAP] Resolved to: ${resolvedTrapOid}`);
             }
 
             // 2. Collect and resolve VarBinds
             const varbinds = [];
-            const varbindRows = document.querySelectorAll("#vb-container .card");
             
             for (const row of varbindRows) {
                 const oid = row.querySelector(".vb-oid").value.trim();
@@ -323,13 +345,13 @@ window.TrapsModule = {
                 varbinds.push({ oid: numericOid, type, value });
             }
 
-            // 3. Build payload with NUMERIC OIDs ONLY
+            // 3. Send trap with ALL numeric OIDs
             const payload = {
                 target: document.getElementById("ts-target").value,
                 port: parseInt(document.getElementById("ts-port").value),
                 community: document.getElementById("ts-comm").value,
-                oid: trapOid,  // MUST be numeric
-                varbinds: varbinds  // All OIDs MUST be numeric
+                oid: resolvedTrapOid,
+                varbinds: varbinds
             };
 
             console.log('[TRAP] Sending payload:', JSON.stringify(payload, null, 2));
@@ -360,6 +382,8 @@ window.TrapsModule = {
             btn.innerHTML = originalText;
         }
     },
+
+    // ==================== Trap Receiver ====================
 
     checkStatus: async function() {
         try {
@@ -414,6 +438,8 @@ window.TrapsModule = {
         this.checkStatus();
     },
 
+    // ==================== Received Traps Display ====================
+
     loadTraps: async function() {
         const tbody = document.getElementById("tr-table-body");
         const countBadge = document.getElementById("tr-count-badge");
@@ -425,14 +451,14 @@ window.TrapsModule = {
             const json = await res.json();
             
             if (json.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted p-3">No traps received.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted p-3">No traps received.</td></tr>';
                 if (countBadge) countBadge.textContent = '0';
                 return;
             }
             
             if (countBadge) countBadge.textContent = json.data.length;
             
-            tbody.innerHTML = json.data.map(t => {
+            tbody.innerHTML = json.data.map((t, idx) => {
                 let trapBadgeClass = 'bg-secondary';
                 const trapType = t.trap_type || 'Unknown';
                 
@@ -444,6 +470,11 @@ window.TrapsModule = {
                     trapBadgeClass = 'bg-warning text-dark';
                 }
                 
+                // Transform varbinds to simple key-value format
+                const simplifiedVarbinds = this.simplifyVarbinds(t.varbinds, t.resolved);
+                const varbindsJson = JSON.stringify(simplifiedVarbinds, null, 2);
+                const varbindsPreview = varbindsJson.substring(0, 80) + '...';
+                
                 return `
                     <tr>
                         <td class="small text-muted">${t.time_str}</td>
@@ -452,43 +483,167 @@ window.TrapsModule = {
                             <span class="badge ${trapBadgeClass}">${trapType}</span>
                         </td>
                         <td>
-                            <div class="varbind-list">
-                                ${t.varbinds.map(v => {
-                                    if (v.oid.includes('1.3.6.1.6.3.1.1.4.1.0') || v.name.includes('snmpTrapOID')) {
-                                        return '';
-                                    }
-                                    
-                                    let displayName = v.oid;
-                                    let nameClass = 'text-muted';
-                                    
-                                    if (t.resolved && v.resolved && v.name !== v.oid) {
-                                        displayName = v.name;
-                                        nameClass = 'text-primary fw-bold';
-                                    }
-                                    
-                                    if (displayName.length > 40) {
-                                        displayName = displayName.substring(0, 37) + '...';
-                                    }
-                                    
-                                    return `
-                                        <div class="d-flex justify-content-between align-items-start small mb-1 py-1 border-bottom">
-                                            <span class="${nameClass} me-2" style="font-family: 'Courier New', monospace; font-size: 0.8rem;">
-                                                ${displayName}
-                                            </span>
-                                            <span class="text-dark text-end" style="max-width: 200px; word-break: break-word;">
-                                                ${v.value}
-                                            </span>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
+                            <code class="small" style="cursor: pointer;" onclick="TrapsModule.showTrapDetails(${idx})" title="Click to view full JSON">
+                                ${varbindsPreview}
+                            </code>
+                        </td>
+                        <td>
+                            <button class="btn btn-xs btn-outline-primary py-0 px-1 me-1" onclick="TrapsModule.copyTrap(${idx})" title="Copy JSON">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="btn btn-xs btn-outline-success py-0 px-1" onclick="TrapsModule.downloadTrap(${idx})" title="Download">
+                                <i class="fas fa-download"></i>
+                            </button>
                         </td>
                     </tr>
                 `;
             }).join('');
+            
+            // Store traps for actions
+            this.receivedTraps = json.data;
+            
         } catch(e) {
             console.error('Failed to load traps:', e);
         }
+    },
+
+    simplifyVarbinds: function(varbinds, resolved) {
+        const simplified = {};
+        
+        if (Array.isArray(varbinds)) {
+            // Backend returns array format: [{oid, name, value, resolved}, ...]
+            varbinds.forEach(vb => {
+                // Skip snmpTrapOID
+                if (vb.oid && vb.oid.includes('1.3.6.1.6.3.1.1.4.1.0')) return;
+                if (vb.name && vb.name.includes('snmpTrapOID')) return;
+                
+                // Use resolved name if available, otherwise use OID
+                let key = vb.oid;
+                if (resolved && vb.resolved && vb.name && vb.name !== vb.oid) {
+                    key = vb.name;
+                }
+                
+                simplified[key] = vb.value;
+            });
+        } else if (typeof varbinds === 'object') {
+            // Already in object format
+            return varbinds;
+        }
+        
+        return simplified;
+    },
+
+    showTrapDetails: function(idx) {
+        const trap = this.receivedTraps[idx];
+        
+        // Simplify varbinds for display
+        const simplifiedVarbinds = this.simplifyVarbinds(trap.varbinds, trap.resolved);
+        
+        // Create display object with simplified varbinds
+        const displayTrap = {
+            timestamp: trap.timestamp,
+            time: trap.time_str,
+            source: trap.source,
+            trap_type: trap.trap_type,
+            varbinds: simplifiedVarbinds,
+            resolved: trap.resolved
+        };
+        
+        const json = JSON.stringify(displayTrap, null, 2);
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Trap Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <pre class="bg-dark text-light p-3 rounded" style="max-height: 500px; overflow-y: auto;">${json}</pre>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-sm btn-primary py-1 px-2" onclick="navigator.clipboard.writeText(\`${json.replace(/`/g, '\\`')}\`); TrapsModule.showNotification('Copied!', 'success');">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <button class="btn btn-sm btn-secondary py-1 px-2" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        modal.addEventListener('hidden.bs.modal', () => modal.remove());
+    },
+
+    copyTrap: function(idx) {
+        const trap = this.receivedTraps[idx];
+        const simplifiedVarbinds = this.simplifyVarbinds(trap.varbinds, trap.resolved);
+        
+        const displayTrap = {
+            timestamp: trap.timestamp,
+            time: trap.time_str,
+            source: trap.source,
+            trap_type: trap.trap_type,
+            varbinds: simplifiedVarbinds,
+            resolved: trap.resolved
+        };
+        
+        const json = JSON.stringify(displayTrap, null, 2);
+        navigator.clipboard.writeText(json);
+        this.showNotification('Trap copied to clipboard', 'success');
+    },
+
+    downloadTrap: function(idx) {
+        const trap = this.receivedTraps[idx];
+        const simplifiedVarbinds = this.simplifyVarbinds(trap.varbinds, trap.resolved);
+        
+        const displayTrap = {
+            timestamp: trap.timestamp,
+            time: trap.time_str,
+            source: trap.source,
+            trap_type: trap.trap_type,
+            varbinds: simplifiedVarbinds,
+            resolved: trap.resolved
+        };
+        
+        const json = JSON.stringify(displayTrap, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `trap_${trap.timestamp}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    },
+
+    downloadAllTraps: function() {
+        if (!this.receivedTraps || this.receivedTraps.length === 0) {
+            alert('No traps to download');
+            return;
+        }
+        
+        // Simplify all traps
+        const simplifiedTraps = this.receivedTraps.map(trap => ({
+            timestamp: trap.timestamp,
+            time: trap.time_str,
+            source: trap.source,
+            trap_type: trap.trap_type,
+            varbinds: this.simplifyVarbinds(trap.varbinds, trap.resolved),
+            resolved: trap.resolved
+        }));
+        
+        const json = JSON.stringify(simplifiedTraps, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `all_traps_${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
     },
 
     clearTraps: async function() {
@@ -496,5 +651,22 @@ window.TrapsModule = {
         
         await fetch('/api/traps/', {method:'DELETE'});
         this.loadTraps();
+    },
+
+    // ==================== Utilities ====================
+
+    showNotification: function(message, type = 'info') {
+        const banner = document.createElement('div');
+        banner.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        banner.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px;';
+        banner.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(banner);
+        
+        setTimeout(() => {
+            banner.remove();
+        }, 3000);
     }
 };
