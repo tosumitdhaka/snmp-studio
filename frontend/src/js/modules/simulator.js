@@ -90,6 +90,19 @@ window.SimulatorModule = {
             alert('Failed to save custom data:\n\n' + e.message);
         }
     },
+    // NEW: Format JSON
+    formatJson: function() {
+        const editor = document.getElementById('custom-data-editor');
+        try {
+            const current = editor.value;
+            if(!current.trim()) return;
+            const parsed = JSON.parse(current);
+            editor.value = JSON.stringify(parsed, null, 2);
+            this.log("JSON Formatted successfully", "success");
+        } catch (e) {
+            alert("Invalid JSON: " + e.message);
+        }
+    },
 
     start: async function() {
         const port = document.getElementById("sim-config-port").value;

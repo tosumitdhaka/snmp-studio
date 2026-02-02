@@ -1,3 +1,24 @@
+/* ==================== Page Header Standardization ==================== */
+
+.page-header {
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+}
+
+.page-header h4 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: #1e293b;
+}
+
+.page-header h4 i {
+    font-size: 1.3rem;
+}
+
+/* ==================== Existing Styles (Keep All) ==================== */
+
 :root {
     --sidebar-width: 260px;
     --sidebar-mini-width: 70px;
@@ -8,7 +29,7 @@
     --header-text: #1e293b;
 }
 
-/* Layout Fix */
+/* --- Layout Base --- */
 body {
     overflow-x: hidden;
     background-color: #f1f5f9;
@@ -30,11 +51,11 @@ body {
     height: 100vh;
 }
 
-/* Sidebar Styling */
+/* --- Sidebar Styling --- */
 #sidebar-wrapper {
     width: var(--sidebar-width);
     background-color: var(--sidebar-bg);
-    transition: width 0.3s ease;
+    transition: margin 0.3s ease, width 0.3s ease;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -83,32 +104,44 @@ body {
     font-size: 1.1rem;
 }
 
-/* Collapsed State */
-body.sb-sidenav-toggled #sidebar-wrapper {
-    width: var(--sidebar-mini-width);
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+    #sidebar-wrapper {
+        margin-left: -var(--sidebar-width);
+    }
+    body.sb-sidenav-toggled #sidebar-wrapper {
+        margin-left: 0;
+        width: var(--sidebar-width);
+    }
+    #page-content-wrapper {
+        min-width: 100vw;
+    }
 }
 
-body.sb-sidenav-toggled #sidebar-wrapper .sidebar-heading span,
-body.sb-sidenav-toggled #sidebar-wrapper .list-group-item span,
-body.sb-sidenav-toggled #sidebar-wrapper #app-version {
-    display: none;
+/* --- Desktop Collapsed State --- */
+@media (min-width: 769px) {
+    body.sb-sidenav-toggled #sidebar-wrapper {
+        width: var(--sidebar-mini-width);
+    }
+    body.sb-sidenav-toggled #sidebar-wrapper .sidebar-heading span,
+    body.sb-sidenav-toggled #sidebar-wrapper .list-group-item span,
+    body.sb-sidenav-toggled #sidebar-wrapper #app-version {
+        display: none;
+    }
+    body.sb-sidenav-toggled #sidebar-wrapper .sidebar-heading {
+        text-align: center;
+        padding: 1.5rem 0;
+    }
+    body.sb-sidenav-toggled #sidebar-wrapper .list-group-item {
+        padding: 1rem 0;
+        justify-content: center;
+    }
+    body.sb-sidenav-toggled #sidebar-wrapper .list-group-item i {
+        margin-right: 0;
+    }
 }
 
-body.sb-sidenav-toggled #sidebar-wrapper .sidebar-heading {
-    text-align: center;
-    padding: 1.5rem 0;
-}
-
-body.sb-sidenav-toggled #sidebar-wrapper .list-group-item {
-    padding: 1rem 0;
-    justify-content: center;
-}
-
-body.sb-sidenav-toggled #sidebar-wrapper .list-group-item i {
-    margin-right: 0;
-}
-
-/* Utilities */
+/* --- Components & Utils --- */
 .cursor-pointer { cursor: pointer; }
 
 pre { 
@@ -117,7 +150,7 @@ pre {
     border-radius: 4px; 
 }
 
-/* Unified Card Headers */
+/* Cards */
 .card {
     border: none;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -132,7 +165,7 @@ pre {
     padding: 1rem 1.25rem;
 }
 
-/* Dashboard Grid */
+/* Dashboard Tools */
 .tool-card {
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
@@ -156,94 +189,134 @@ pre {
     margin-bottom: 1rem;
 }
 
-/* Trap VarBind List Styling */
+/* Trap VarBind List */
 .varbind-list {
     max-height: 150px;
     overflow-y: auto;
     font-size: 0.85rem;
 }
 
-.varbind-list::-webkit-scrollbar {
-    width: 4px;
-}
+.varbind-list::-webkit-scrollbar { width: 4px; }
+.varbind-list::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 2px; }
 
-.varbind-list::-webkit-scrollbar-thumb {
-    background: #cbd5e0;
-    border-radius: 2px;
-}
+/* Badges & Buttons */
+.badge.bg-success { background-color: #10b981 !important; }
+.badge.bg-danger { background-color: #ef4444 !important; }
+.badge.bg-warning { background-color: #f59e0b !important; color: #000 !important; }
 
-/* Trap Type Badges */
-.badge.bg-success {
-    background-color: #10b981 !important;
-}
+.badge { font-weight: 500; padding: 0.25em 0.6em; }
+.btn-xs { padding: 0.15rem 0.4rem; font-size: 0.75rem; line-height: 1.2; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+.btn-group-sm .btn { padding: 0.15rem 0.4rem; font-size: 0.75rem; }
 
-.badge.bg-danger {
-    background-color: #ef4444 !important;
-}
-
-.badge.bg-warning {
-    background-color: #f59e0b !important;
-    color: #000 !important;
-}
-
-/* Sticky Table Headers */
-.sticky-top {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-/* MIB Manager Trap Table */
-#trap-table-body tr {
-    vertical-align: middle;
-}
-
-#trap-table-body td {
-    padding: 0.5rem 0.75rem;
-}
-
-#trap-table-body .btn-group-sm .btn {
-    font-size: 0.75rem;
-    line-height: 1.2;
-}
-
-/* Compact badges */
-.badge {
-    font-weight: 500;
-    padding: 0.25em 0.6em;
-}
-
-/* Consistent button sizing */
-.btn-xs {
-    padding: 0.15rem 0.4rem;
-    font-size: 0.75rem;
-    line-height: 1.2;
-}
-
-.btn-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-}
-
-/* Inline action buttons (like in MIB manager) */
-.btn-group-sm .btn {
-    padding: 0.15rem 0.4rem;
-    font-size: 0.75rem;
-}
-
+/* --- Table & Sticky Headers --- */
 .table-wrapper {
-  overflow: auto;           /* scroll container */
+  overflow: auto;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;      /* prevents width drift when content varies */
 }
 
-thead th {
-  position: sticky;
-  top: 0;
-  background: #fff;         /* ensure header is readable when stuck */
-  z-index: 2;
+/* Fix for sticky headers z-index issues */
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #fff;
+}
+
+/* Specific Table Tweaks */
+#trap-table-body tr { 
+    vertical-align: middle; 
+}
+
+#trap-table-body td { 
+    padding: 0.5rem 0.75rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Trap Receiver Table - Explicit Column Widths */
+#tr-table-body tr {
+    vertical-align: middle;
+}
+
+#tr-table-body td {
+    padding: 0.5rem 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Define column widths for trap receiver table */
+.trap-receiver-table {
+    table-layout: fixed;
+}
+
+.trap-receiver-table th:nth-child(1),
+.trap-receiver-table td:nth-child(1) {
+    width: 140px; /* Time */
+}
+
+.trap-receiver-table th:nth-child(2),
+.trap-receiver-table td:nth-child(2) {
+    width: 150px; /* Source */
+}
+
+.trap-receiver-table th:nth-child(3),
+.trap-receiver-table td:nth-child(3) {
+    width: 130px; /* Trap Type */
+}
+
+.trap-receiver-table th:nth-child(4),
+.trap-receiver-table td:nth-child(4) {
+    width: auto; /* VarBinds - takes remaining space */
+    min-width: 200px;
+}
+
+.trap-receiver-table th:nth-child(5),
+.trap-receiver-table td:nth-child(5) {
+    width: 90px; /* Actions */
+    text-align: center;
+}
+
+/* Ensure code blocks don't overflow */
+.trap-receiver-table code {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* ==================== MIB Manager Trap Table ==================== */
+
+.mib-trap-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.mib-trap-table th,
+.mib-trap-table td {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+}
+
+/* Truncate long text with ellipsis */
+.mib-trap-table td:nth-child(1),
+.mib-trap-table td:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Ensure action buttons stay visible */
+.mib-trap-table td:nth-child(5) {
+    white-space: nowrap;
+    overflow: visible;
+}
+
+.mib-trap-table .btn-group {
+    display: inline-flex;
 }

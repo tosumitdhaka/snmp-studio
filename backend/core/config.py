@@ -25,7 +25,7 @@ class Settings:
     
     # Application
     APP_NAME = os.getenv("APP_NAME", "SNMP Studio")
-    APP_VERSION = os.getenv("APP_VERSION", "1.0.0")
+    APP_VERSION = os.getenv("APP_VERSION", "1.1.4")
     
     # Security
     SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "3600"))  # seconds

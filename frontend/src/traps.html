@@ -1,86 +1,99 @@
+
 <div class="row h-100">
-    <!-- LEFT: Trap Sender -->
-<!-- LEFT: Trap Sender -->
-    <div class="col-md-5">
-        <div class="card shadow-sm mb-3">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-paper-plane me-2"></i> Trap Sender</span>
-                <button class="btn btn-xs btn-outline-light" onclick="TrapsModule.resetForm()">Reset</button>
+    <!-- ==================== LEFT: TRAP SENDER ==================== -->
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-paper-plane me-2 text-success"></i> Send Trap
             </div>
             <div class="card-body">
                 <form onsubmit="TrapsModule.sendTrap(event)">
-                    <!-- Target Settings -->
-                    <div class="row g-2 mb-2">
-                        <div class="col-8">
-                            <label class="small fw-bold">Target IP</label>
-                            <input type="text" id="ts-target" class="form-control form-control-sm" value="127.0.0.1">
+                    <!-- Target Configuration -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Target IP</label>
+                            <input type="text" id="ts-target" class="form-control form-control-sm" 
+                                   value="127.0.0.1" placeholder="127.0.0.1">
                         </div>
-                        <div class="col-4">
-                            <label class="small fw-bold">Port</label>
-                            <input type="number" id="ts-port" class="form-control form-control-sm" value="1162">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Port</label>
+                            <input type="number" id="ts-port" class="form-control form-control-sm" 
+                                   value="1162" placeholder="162">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Community</label>
+                            <input type="text" id="ts-comm" class="form-control form-control-sm" 
+                                   value="public" placeholder="public">
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="small fw-bold">Community</label>
-                        <input type="text" id="ts-comm" class="form-control form-control-sm" value="public">
-                    </div>
-                    
-                    <hr class="my-2">
-                    
+
                     <!-- Trap Selection -->
-                    <label class="small fw-bold">Select Trap</label>
-                    <div class="input-group input-group-sm mb-2">
-                        <select id="ts-trap-select" class="form-select" onchange="TrapsModule.onTrapSelected()">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Select Trap from MIB</label>
+                        <select id="ts-trap-select" class="form-select form-select-sm" 
+                                onchange="TrapsModule.onTrapSelected()">
                             <option value="">-- Select a trap --</option>
                         </select>
-                        <button class="btn btn-outline-secondary" type="button" onclick="TrapsModule.loadTrapList()" title="Refresh trap list">
-                            <i class="fas fa-sync"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- Manual OID Input (Alternative) -->
-                    <div class="input-group input-group-sm mb-3">
-                        <span class="input-group-text">Or enter OID:</span>
-                        <input type="text" id="ts-oid" class="form-control" 
-                            placeholder="IF-MIB::linkDown or 1.3.6..." 
-                            value="IF-MIB::linkDown">
                     </div>
 
-                    <!-- Dynamic VarBinds -->
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label class="small fw-bold">VarBinds</label>
-                        <div>
-                            <button type="button" class="btn btn-xs btn-outline-secondary me-1" onclick="TrapsModule.showVarBindPicker()" title="Pick from MIB">
-                                <i class="fas fa-list"></i> Browse
-                            </button>
-                            <button type="button" class="btn btn-xs btn-outline-primary" onclick="TrapsModule.addVarbind()">
-                                <i class="fas fa-plus"></i> Add
-                            </button>
+                    <!-- Manual OID Input -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Or Enter Trap OID</label>
+                        <input type="text" id="ts-oid" class="form-control form-control-sm" 
+                               placeholder="IF-MIB::linkDown or 1.3.6..." 
+                               value="IF-MIB::linkDown">
+                    </div>
+
+                    <!-- VarBinds Section -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label small fw-bold mb-0">VarBinds</label>
+                            <div>
+                                <button type="button" class="btn btn-xs btn-outline-primary me-1" 
+                                        onclick="TrapsModule.showVarBindPicker()">
+                                    <i class="fas fa-search"></i> Browse
+                                </button>
+                                <button type="button" class="btn btn-xs btn-outline-secondary" 
+                                        onclick="TrapsModule.addVarbind()">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </div>
+                        </div>
+                        <div id="vb-container" style="max-height: 300px; overflow-y: auto;">
+                            <div class="text-center text-muted small py-2" id="vb-empty">
+                                No VarBinds added
+                            </div>
                         </div>
                     </div>
-                    
-                    <div id="vb-container" style="max-height: 300px; overflow-y: auto;" class="mb-3 border p-2 rounded bg-light">
-                        <div class="text-center text-muted small py-2" id="vb-empty">No VarBinds added</div>
-                    </div>
 
-                    <button type="submit" class="btn btn-primary w-100 btn-sm">
-                        <i class="fas fa-bolt"></i> Send Trap
-                    </button>
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-sm btn-secondary" 
+                                onclick="TrapsModule.resetForm()">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                        <button type="submit" class="btn btn-sm btn-success">
+                            <i class="fas fa-paper-plane"></i> Send Trap
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- RIGHT: Trap Receiver -->
-    <div class="col-md-7">
-        <!-- Control Bar -->
+    <!-- ==================== RIGHT: TRAP RECEIVER ==================== -->
+    <div class="col-md-8">
+        <!-- Receiver Controls -->
         <div class="card shadow-sm mb-3">
+            <div class="card-header">
+                <i class="fas fa-satellite-dish me-2 text-info"></i> Trap Receiver
+            </div>
             <div class="card-body py-2">
                 <div class="d-flex justify-content-between align-items-center">
                     <!-- Status -->
                     <div class="d-flex align-items-center gap-2">
-                        <span class="fw-bold"><i class="fas fa-satellite-dish me-2"></i> Receiver</span>
-                        <span id="tr-status-badge" class="badge bg-secondary">Stopped</span>
+                        <span class="fw-bold">Status:</span>
+                        <span id="tr-status-badge" class="badge bg-secondary">STOPPED</span>
                     </div>
                     
                     <!-- Controls -->
@@ -96,50 +109,60 @@
                             <label class="form-check-label small" for="tr-resolve-toggle">Resolve</label>
                         </div>
                         
-                        <button class="btn btn-sm btn-success py-1 px-2" id="btn-tr-start" onclick="TrapsModule.startReceiver()">
+                        <button class="btn btn-sm btn-success py-1 px-2" id="btn-tr-start" 
+                                onclick="TrapsModule.startReceiver()">
                             <i class="fas fa-play"></i> Start
                         </button>
-                        <button class="btn btn-sm btn-danger py-1 px-2" id="btn-tr-stop" onclick="TrapsModule.stopReceiver()" disabled>
+                        <button class="btn btn-sm btn-danger py-1 px-2" id="btn-tr-stop" 
+                                onclick="TrapsModule.stopReceiver()" disabled>
                             <i class="fas fa-stop"></i> Stop
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Trap List Header -->
-        <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
-            <span class="small text-muted fw-bold">
-                <i class="fas fa-list me-1"></i> Received Traps
-                <span id="tr-count-badge" class="badge bg-secondary ms-2">0</span>
-            </span>
-            <div>
-                <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="TrapsModule.downloadAllTraps()">
-                    <i class="fas fa-download"></i> Download All
-                </button>
-                <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="TrapsModule.clearTraps()">
-                    <i class="fas fa-trash"></i> Clear
-                </button>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-sm table-hover mb-0 small">
-                    <thead class="table-light sticky-top">
-                        <tr>
-                            <th style="width: 120px;">Time</th>
-                            <th style="width: 130px;">Source</th>
-                            <th style="width: 120px;">Trap Type</th>
-                            <th>VarBinds (JSON)</th>
-                            <th style="width: 80px;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tr-table-body">
-                        <tr>
-                            <td colspan="5" class="text-center text-muted p-3">No traps received</td>
-                        </tr>
-                    </tbody>
-                </table>
+
+        <!-- Received Traps Table -->
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <!-- Header with actions -->
+                <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                    <span class="small text-muted fw-bold">
+                        <i class="fas fa-list me-1"></i> Received Traps
+                        <span id="tr-count-badge" class="badge bg-secondary ms-2">0</span>
+                    </span>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" 
+                                onclick="TrapsModule.downloadAllTraps()">
+                            <i class="fas fa-download"></i> Download All
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger py-1 px-2" 
+                                onclick="TrapsModule.clearTraps()">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Table -->
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0 small trap-receiver-table">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Time</th>
+                                <th>Source</th>
+                                <th>Trap Type</th>
+                                <th>VarBinds (JSON)</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tr-table-body">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted p-3">No traps received</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-
     </div>
 </div>

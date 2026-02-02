@@ -1,8 +1,11 @@
+
 <div class="row h-100">
-    <!-- Config -->
+    <!-- LEFT: Config -->
     <div class="col-md-4">
         <div class="card shadow-sm">
-            <div class="card-header bg-dark text-white py-2">Target</div>
+            <div class="card-header">
+                <i class="fas fa-cog me-2 text-primary"></i> Target Configuration
+            </div>
             <div class="card-body">
                 <div class="mb-2">
                     <label class="form-label small">Host</label>
@@ -39,7 +42,6 @@
                         Parsing requires MIB resolution. Disable parsing to toggle MIB usage.
                     </div>
                 </div>
-
                 <button class="btn btn-primary w-100" onclick="WalkerModule.execute()">
                     <i class="fas fa-play"></i> Run Walk
                 </button>
@@ -47,14 +49,13 @@
         </div>
     </div>
 
-    <!-- Results -->
+    <!-- RIGHT: Results -->
     <div class="col-md-8">
         <div class="card shadow-sm h-100">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <span>Results</span>
+                <span><i class="fas fa-list-alt me-2 text-success"></i> Results</span>
                 <div>
                     <span class="badge bg-secondary me-2" id="walk-count">0 items</span>
-                    <!-- Copy Button -->
                     <button class="btn btn-sm btn-outline-dark me-1" onclick="WalkerModule.copyToClipboard()" title="Copy Output">
                         <i class="fas fa-copy"></i>
                     </button>

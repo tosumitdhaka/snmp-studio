@@ -120,17 +120,22 @@ window.MibsModule = {
         const tbody = document.getElementById('trap-table-body');
     
         if (traps.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted p-3">No traps found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted p-3">No traps found</td></tr>';
             return;
         }
     
         tbody.innerHTML = traps.map(trap => `
             <tr>
-                <td>
+                <td title="${trap.name}">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-bell text-warning me-2"></i>
-                        <strong>${trap.name}</strong>
+                        <strong class="text-truncate">${trap.name}</strong>
                     </div>
+                </td>
+                <td title="${trap.oid}">
+                    <code class="small text-muted text-truncate d-block" style="font-size: 0.7rem;">
+                        ${trap.oid}
+                    </code>
                 </td>
                 <td class="text-center">
                     <span class="badge bg-secondary" style="font-size: 0.7rem;">${trap.module}</span>
@@ -155,7 +160,6 @@ window.MibsModule = {
             </tr>
         `).join('');
     },
-
 
     // NEW: Send trap directly without modal
     useTrapDirectly: function(trap) {

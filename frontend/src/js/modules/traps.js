@@ -473,7 +473,11 @@ window.TrapsModule = {
                 // Transform varbinds to simple key-value format
                 const simplifiedVarbinds = this.simplifyVarbinds(t.varbinds, t.resolved);
                 const varbindsJson = JSON.stringify(simplifiedVarbinds, null, 2);
-                const varbindsPreview = varbindsJson.substring(0, 80) + '...';
+                
+                // Truncate for preview (will be handled by CSS ellipsis)
+                const varbindsPreview = varbindsJson.length > 100 
+                    ? varbindsJson.substring(0, 100) + '...' 
+                    : varbindsJson;
                 
                 return `
                     <tr>
@@ -487,11 +491,11 @@ window.TrapsModule = {
                                 ${varbindsPreview}
                             </code>
                         </td>
-                        <td>
-                            <button class="btn btn-xs btn-outline-primary py-0 px-1 me-1" onclick="TrapsModule.copyTrap(${idx})" title="Copy JSON">
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" onclick="TrapsModule.copyTrap(${idx})" title="Copy JSON">
                                 <i class="fas fa-copy"></i>
                             </button>
-                            <button class="btn btn-xs btn-outline-success py-0 px-1" onclick="TrapsModule.downloadTrap(${idx})" title="Download">
+                            <button class="btn btn-sm btn-outline-success py-0 px-1" onclick="TrapsModule.downloadTrap(${idx})" title="Download">
                                 <i class="fas fa-download"></i>
                             </button>
                         </td>
@@ -506,6 +510,7 @@ window.TrapsModule = {
             console.error('Failed to load traps:', e);
         }
     },
+
 
     simplifyVarbinds: function(varbinds, resolved) {
         const simplified = {};

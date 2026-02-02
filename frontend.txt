@@ -1,0 +1,2995 @@
+===== /workspaces/snmp-studio/frontend/Dockerfile =====
+FROM nginx:alpine
+
+# Copy static assets
+COPY src /usr/share/nginx/html
+
+# Copy custom Nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+===== /workspaces/snmp-studio/frontend/nginx.conf =====
+server {
+    listen 80;
+    server_name localhost;
+
+    # Serve Static Files
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy API calls to Backend Container
+    location /api/ {
+        proxy_pass http://snmp-backend:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+===== /workspaces/snmp-studio/frontend/src/css/style.css =====
+:root {
+    --sidebar-width: 260px;
+    --sidebar-mini-width: 70px;
+    --sidebar-bg: #1e293b;
+    --sidebar-text: #94a3b8;
+    --sidebar-active: #3b82f6;
+    --header-bg: #ffffff;
+    --header-text: #1e293b;
+}
+
+/* Layout Fix */
+body {
+    overflow-x: hidden;
+    background-color: #f1f5f9;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+}
+
+#wrapper {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#page-content-wrapper {
+    width: 100%;
+    overflow-y: auto;
+    height: 100vh;
+}
+
+/* Sidebar Styling */
+#sidebar-wrapper {
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    transition: width 0.3s ease;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#sidebar-wrapper .sidebar-heading {
+    padding: 1.5rem;
+    color: #fff;
+    font-size: 1.2rem;
+    background-color: rgba(0,0,0,0.2);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+#sidebar-wrapper .list-group-item {
+    background-color: transparent;
+    color: var(--sidebar-text);
+    border: none;
+    padding: 1rem 1.5rem;
+    transition: all 0.2s;
+    border-left: 4px solid transparent;
+    white-space: nowrap;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+#sidebar-wrapper .list-group-item:hover {
+    background-color: rgba(255,255,255,0.05);
+    color: #fff;
+}
+
+#sidebar-wrapper .list-group-item.active {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #fff;
+    border-left-color: var(--sidebar-active);
+    font-weight: 500;
+}
+
+#sidebar-wrapper .list-group-item i {
+    min-width: 30px;
+    text-align: center;
+    margin-right: 10px;
+    font-size: 1.1rem;
+}
+
+/* Collapsed State */
+body.sb-sidenav-toggled #sidebar-wrapper {
+    width: var(--sidebar-mini-width);
+}
+
+body.sb-sidenav-toggled #sidebar-wrapper .sidebar-heading span,
+body.sb-sidenav-toggled #sidebar-wrapper .list-group-item span,
+body.sb-sidenav-toggled #sidebar-wrapper #app-version {
+    display: none;
+}
+
+body.sb-sidenav-toggled #sidebar-wrapper .sidebar-heading {
+    text-align: center;
+    padding: 1.5rem 0;
+}
+
+body.sb-sidenav-toggled #sidebar-wrapper .list-group-item {
+    padding: 1rem 0;
+    justify-content: center;
+}
+
+body.sb-sidenav-toggled #sidebar-wrapper .list-group-item i {
+    margin-right: 0;
+}
+
+/* Utilities */
+.cursor-pointer { cursor: pointer; }
+
+pre { 
+    background: #212529; 
+    color: #f8f9fa; 
+    border-radius: 4px; 
+}
+
+/* Unified Card Headers */
+.card {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background-color: var(--header-bg);
+    color: var(--header-text);
+    font-weight: 600;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem 1.25rem;
+}
+
+/* Dashboard Grid */
+.tool-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    height: 100%;
+    border: 1px solid #e2e8f0;
+}
+
+.tool-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border-color: var(--sidebar-active);
+}
+
+.tool-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+}
+
+/* Trap VarBind List Styling */
+.varbind-list {
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+}
+
+.varbind-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.varbind-list::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 2px;
+}
+
+/* Trap Type Badges */
+.badge.bg-success {
+    background-color: #10b981 !important;
+}
+
+.badge.bg-danger {
+    background-color: #ef4444 !important;
+}
+
+.badge.bg-warning {
+    background-color: #f59e0b !important;
+    color: #000 !important;
+}
+
+/* Sticky Table Headers */
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* MIB Manager Trap Table */
+#trap-table-body tr {
+    vertical-align: middle;
+}
+
+#trap-table-body td {
+    padding: 0.5rem 0.75rem;
+}
+
+#trap-table-body .btn-group-sm .btn {
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+/* Compact badges */
+.badge {
+    font-weight: 500;
+    padding: 0.25em 0.6em;
+}
+
+/* Consistent button sizing */
+.btn-xs {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Inline action buttons (like in MIB manager) */
+.btn-group-sm .btn {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.75rem;
+}
+
+.table-wrapper {
+  overflow: auto;           /* scroll container */
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;      /* prevents width drift when content varies */
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: #fff;         /* ensure header is readable when stuck */
+  z-index: 2;
+}
+
+===== /workspaces/snmp-studio/frontend/src/js/modules/settings.js =====
+window.SettingsModule = {
+    init: function() {
+        // We can't pre-fill the password, but we can pre-fill the username if we stored it
+        // document.getElementById("set-auth-user").value = "admin"; 
+    },
+
+    updateAuth: async function(e) {
+        e.preventDefault();
+        
+        const currentPass = document.getElementById("set-auth-current-pass").value;
+        const user = document.getElementById("set-auth-user").value;
+        const pass = document.getElementById("set-auth-pass").value;
+        const confirmPass = document.getElementById("set-auth-pass-confirm").value;
+        const msgBox = document.getElementById("auth-msg");
+        
+        // Validation
+        if (pass !== confirmPass) {
+            msgBox.textContent = "New passwords do not match!";
+            msgBox.classList.remove("d-none");
+            return;
+        }
+        
+        msgBox.classList.add("d-none");
+
+        try {
+            const res = await fetch('/api/settings/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // UPDATE: Send current_password
+                body: JSON.stringify({ 
+                    current_password: currentPass,
+                    username: user, 
+                    password: pass 
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                alert("Credentials updated! You must log in again.");
+                logout(); // Force logout
+            } else {
+                msgBox.textContent = data.detail || "Error updating credentials.";
+                msgBox.classList.remove("d-none");
+            }
+        } catch (e) {
+            console.error(e);
+            msgBox.textContent = "Connection error.";
+            msgBox.classList.remove("d-none");
+        }
+    }
+};
+===== /workspaces/snmp-studio/frontend/src/js/modules/traps.js =====
+window.TrapsModule = {
+    pollInterval: null,
+    vbCount: 0,
+    allTraps: [],
+    allObjects: [],
+
+    init: function() {
+        this.checkStatus();
+        this.loadTraps();
+        this.pollInterval = setInterval(() => { this.checkStatus(); this.loadTraps(); }, 3000);
+        
+        this.loadTrapList();
+        this.loadSelectedTrap();
+    },
+
+    destroy: function() {
+        if (this.pollInterval) clearInterval(this.pollInterval);
+    },
+
+    // ==================== Trap List Management ====================
+
+    loadTrapList: async function() {
+        try {
+            const res = await fetch('/api/mibs/traps');
+            const data = await res.json();
+            
+            this.allTraps = data.traps;
+            
+            const select = document.getElementById('ts-trap-select');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">-- Select a trap --</option>';
+            
+            data.traps.forEach(trap => {
+                const option = document.createElement('option');
+                option.value = trap.full_name;
+                option.textContent = `${trap.full_name} (${trap.objects.length} objects)`;
+                option.dataset.trap = JSON.stringify(trap);
+                select.appendChild(option);
+            });
+        } catch (e) {
+            console.error('Failed to load trap list:', e);
+        }
+    },
+
+    onTrapSelected: function() {
+        const select = document.getElementById('ts-trap-select');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (!selectedOption.value) return;
+        
+        try {
+            const trap = JSON.parse(selectedOption.dataset.trap);
+            this.populateTrapForm(trap);
+        } catch (e) {
+            console.error('Failed to parse trap data:', e);
+        }
+    },
+
+    populateTrapForm: function(trap) {
+        document.getElementById('ts-oid').value = trap.full_name;
+        
+        document.getElementById('vb-container').innerHTML = 
+            '<div class="text-center text-muted small py-2" id="vb-empty" style="display:none;"></div>';
+        
+        this.addVarbind("SNMPv2-MIB::sysUpTime.0", "TimeTicks", "12345");
+        
+        if (trap.objects && trap.objects.length > 0) {
+            trap.objects.forEach(obj => {
+                let type = this.guessVarBindType(obj.name);
+                this.addVarbind(obj.full_name, type, "");
+            });
+        }
+        
+        this.showNotification(`Loaded trap: ${trap.name}`, 'success');
+    },
+
+    guessVarBindType: function(name) {
+        const lowerName = name.toLowerCase();
+        
+        if (lowerName.includes('index') || lowerName.includes('count') || lowerName.includes('number')) {
+            return "Integer";
+        } else if (lowerName.includes('status') || lowerName.includes('state') || lowerName.includes('admin')) {
+            return "Integer";
+        } else if (lowerName.includes('addr') || lowerName.includes('address')) {
+            return "IpAddress";
+        } else if (lowerName.includes('time') || lowerName.includes('tick')) {
+            return "TimeTicks";
+        } else if (lowerName.includes('counter')) {
+            return "Counter";
+        } else if (lowerName.includes('gauge') || lowerName.includes('speed') || lowerName.includes('bandwidth')) {
+            return "Gauge";
+        } else if (lowerName.includes('oid') || lowerName.includes('object')) {
+            return "OID";
+        }
+        
+        return "String";
+    },
+
+    // ==================== VarBind Picker ====================
+
+    showVarBindPicker: async function() {
+        if (this.allObjects.length === 0) {
+            try {
+                const res = await fetch('/api/mibs/objects');
+                const data = await res.json();
+                this.allObjects = data.objects;
+            } catch (e) {
+                alert('Failed to load MIB objects');
+                return;
+            }
+        }
+        
+        const modalHtml = `
+            <div class="modal fade" id="varbindPickerModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Select VarBind from MIB</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="text" id="vb-search" class="form-control mb-3" placeholder="Search objects...">
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>Object Name</th>
+                                            <th>Module</th>
+                                            <th>Type</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="vb-picker-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingModal = document.getElementById('varbindPickerModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        this.renderVarBindPicker(this.allObjects);
+        
+        document.getElementById('vb-search').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = this.allObjects.filter(obj => 
+                obj.name.toLowerCase().includes(query) || 
+                obj.module.toLowerCase().includes(query)
+            );
+            this.renderVarBindPicker(filtered);
+        });
+        
+        const modal = new bootstrap.Modal(document.getElementById('varbindPickerModal'));
+        modal.show();
+    },
+
+    renderVarBindPicker: function(objects) {
+        const tbody = document.getElementById('vb-picker-body');
+        
+        if (objects.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No objects found</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = objects.slice(0, 100).map(obj => `
+            <tr>
+                <td><code class="small">${obj.name}</code></td>
+                <td><span class="badge bg-secondary small">${obj.module}</span></td>
+                <td><span class="small">${obj.syntax}</span></td>
+                <td>
+                    <button class="btn btn-xs btn-primary" onclick="TrapsModule.addVarbindFromPicker('${obj.full_name}', '${obj.syntax}')">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+        
+        if (objects.length > 100) {
+            tbody.innerHTML += `<tr><td colspan="4" class="text-center text-muted small">Showing first 100 results. Use search to narrow down.</td></tr>`;
+        }
+    },
+
+    addVarbindFromPicker: function(fullName, syntax) {
+        const type = this.syntaxToType(syntax);
+        this.addVarbind(fullName, type, "");
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('varbindPickerModal'));
+        if (modal) modal.hide();
+    },
+
+    syntaxToType: function(syntax) {
+        if (syntax.includes('Integer')) return 'Integer';
+        if (syntax.includes('Counter64')) return 'Counter';
+        if (syntax.includes('Counter')) return 'Counter';
+        if (syntax.includes('Gauge')) return 'Gauge';
+        if (syntax.includes('TimeTicks')) return 'TimeTicks';
+        if (syntax.includes('IpAddress')) return 'IpAddress';
+        if (syntax.includes('ObjectIdentifier')) return 'OID';
+        return 'String';
+    },
+
+    // ==================== Trap Form Management ====================
+
+    loadSelectedTrap: function() {
+        const trapData = sessionStorage.getItem('selectedTrap');
+        if (!trapData) {
+            this.addVarbind("SNMPv2-MIB::sysUpTime.0", "TimeTicks", "0");
+            return;
+        }
+
+        try {
+            const trap = JSON.parse(trapData);
+            sessionStorage.removeItem('selectedTrap');
+            
+            const select = document.getElementById('ts-trap-select');
+            if (select) {
+                select.value = trap.full_name;
+            }
+            
+            this.populateTrapForm(trap);
+            
+        } catch (e) {
+            console.error('Failed to load selected trap:', e);
+        }
+    },
+
+    addVarbind: function(oid="", type="String", val="") {
+        const container = document.getElementById("vb-container");
+        const emptyMsg = document.getElementById("vb-empty");
+        if (emptyMsg) emptyMsg.style.display = "none";
+        
+        const id = `vb-row-${this.vbCount++}`;
+        const html = `
+            <div class="card mb-2 border-secondary" id="${id}">
+                <div class="card-body p-2">
+                    <div class="input-group input-group-sm mb-1">
+                        <span class="input-group-text bg-light">OID</span>
+                        <input type="text" class="form-control vb-oid" value="${oid}" placeholder="1.3.6... or IF-MIB::ifIndex">
+                        <button class="btn btn-outline-danger" type="button" onclick="document.getElementById('${id}').remove()">X</button>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <select class="form-select vb-type" style="max-width: 120px;">
+                            <option value="String" ${type==='String'?'selected':''}>String</option>
+                            <option value="Integer" ${type==='Integer'?'selected':''}>Integer</option>
+                            <option value="OID" ${type==='OID'?'selected':''}>OID</option>
+                            <option value="TimeTicks" ${type==='TimeTicks'?'selected':''}>TimeTicks</option>
+                            <option value="IpAddress" ${type==='IpAddress'?'selected':''}>IpAddress</option>
+                            <option value="Counter" ${type==='Counter'?'selected':''}>Counter</option>
+                            <option value="Gauge" ${type==='Gauge'?'selected':''}>Gauge</option>
+                        </select>
+                        <input type="text" class="form-control vb-val" value="${val}" placeholder="Value">
+                    </div>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    },
+
+    resetForm: function() {
+        document.getElementById("vb-container").innerHTML = '<div class="text-center text-muted small py-2" id="vb-empty">No VarBinds added</div>';
+        document.getElementById("ts-oid").value = "IF-MIB::linkDown";
+        
+        const select = document.getElementById("ts-trap-select");
+        if (select) select.value = "";
+        
+        this.addVarbind("SNMPv2-MIB::sysUpTime.0", "TimeTicks", "0");
+    },
+
+    // ==================== Trap Sending ====================
+
+    sendTrap: async function(e) {
+        e.preventDefault();
+        
+        // Validate trap OID
+        const trapOid = document.getElementById("ts-oid").value.trim();
+        if (!trapOid) {
+            alert('Please enter a Trap OID or select a trap from the dropdown');
+            return;
+        }
+        
+        // Validate VarBinds
+        const varbindRows = document.querySelectorAll("#vb-container .card");
+        if (varbindRows.length === 0) {
+            alert('Please add at least one VarBind');
+            return;
+        }
+        
+        let hasValidVarbind = false;
+        for (const row of varbindRows) {
+            const oid = row.querySelector(".vb-oid").value.trim();
+            const value = row.querySelector(".vb-val").value.trim();
+            if (oid && value) {
+                hasValidVarbind = true;
+                break;
+            }
+        }
+        
+        if (!hasValidVarbind) {
+            alert('Please provide OID and value for at least one VarBind');
+            return;
+        }
+        
+        const btn = e.target.querySelector("button[type='submit']");
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+        try {
+            // 1. Resolve trap OID first
+            let resolvedTrapOid = trapOid;
+            
+            if (trapOid.includes("::")) {
+                console.log(`[TRAP] Resolving trap OID: ${trapOid}`);
+                const trapRes = await fetch(`/api/mibs/resolve?oid=${encodeURIComponent(trapOid)}&mode=numeric`);
+                const trapData = await trapRes.json();
+                resolvedTrapOid = trapData.output;
+                console.log(`[TRAP] Resolved to: ${resolvedTrapOid}`);
+            }
+
+            // 2. Collect and resolve VarBinds
+            const varbinds = [];
+            
+            for (const row of varbindRows) {
+                const oid = row.querySelector(".vb-oid").value.trim();
+                const type = row.querySelector(".vb-type").value;
+                const value = row.querySelector(".vb-val").value.trim();
+                
+                if (!oid || !value) continue;
+                
+                let numericOid = oid;
+                if (oid.includes("::")) {
+                    console.log(`[VARBIND] Resolving: ${oid}`);
+                    const vbRes = await fetch(`/api/mibs/resolve?oid=${encodeURIComponent(oid)}&mode=numeric`);
+                    const vbData = await vbRes.json();
+                    numericOid = vbData.output;
+                    console.log(`[VARBIND] Resolved to: ${numericOid}`);
+                }
+                
+                varbinds.push({ oid: numericOid, type, value });
+            }
+
+            // 3. Send trap with ALL numeric OIDs
+            const payload = {
+                target: document.getElementById("ts-target").value,
+                port: parseInt(document.getElementById("ts-port").value),
+                community: document.getElementById("ts-comm").value,
+                oid: resolvedTrapOid,
+                varbinds: varbinds
+            };
+
+            console.log('[TRAP] Sending payload:', JSON.stringify(payload, null, 2));
+
+            const res = await fetch('/api/traps/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                this.showNotification(`✓ Trap sent to ${data.target}:${data.port}`, 'success');
+                
+                if (payload.target === "127.0.0.1" || payload.target === "localhost") {
+                    setTimeout(() => this.loadTraps(), 500); 
+                }
+            } else {
+                const errorData = await res.json();
+                const errorMsg = errorData.detail || 'Unknown error';
+                alert(`Trap Send Failed\n\n${errorMsg}`);
+            }
+        } catch (e) {
+            console.error('[TRAP] Send error:', e);
+            alert(`Connection Failed\n\n${e.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    },
+
+    // ==================== Trap Receiver ====================
+
+    checkStatus: async function() {
+        try {
+            const res = await fetch('/api/traps/status');
+            const data = await res.json();
+            this.updateStatusUI(data);
+        } catch(e) {
+            console.error('Status check failed:', e);
+        }
+    },
+
+    updateStatusUI: function(status) {
+        const badge = document.getElementById("tr-status-badge");
+        const btnStart = document.getElementById("btn-tr-start");
+        const btnStop = document.getElementById("btn-tr-stop");
+        
+        if (!badge) return;
+        
+        if (status.running) {
+            badge.className = "badge bg-success";
+            badge.innerHTML = `RUNNING <span class="small">(${status.resolve_mibs ? 'Resolved' : 'Raw'})</span>`;
+            btnStart.disabled = true;
+            btnStop.disabled = false;
+        } else {
+            badge.className = "badge bg-secondary";
+            badge.textContent = "STOPPED";
+            btnStart.disabled = false;
+            btnStop.disabled = true;
+        }
+    },
+
+    startReceiver: async function() {
+        const port = parseInt(document.getElementById("tr-port").value);
+        const community = document.getElementById("tr-community").value;
+        const resolve = document.getElementById("tr-resolve-toggle").checked;
+        
+        await fetch('/api/traps/start', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                port: port,
+                community: community,
+                resolve_mibs: resolve
+            })
+        });
+        
+        this.checkStatus();
+    },
+
+    stopReceiver: async function() {
+        await fetch('/api/traps/stop', {method:'POST'});
+        this.checkStatus();
+    },
+
+    // ==================== Received Traps Display ====================
+
+    loadTraps: async function() {
+        const tbody = document.getElementById("tr-table-body");
+        const countBadge = document.getElementById("tr-count-badge");
+        
+        if (!tbody) return;
+        
+        try {
+            const res = await fetch('/api/traps/');
+            const json = await res.json();
+            
+            if (json.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted p-3">No traps received.</td></tr>';
+                if (countBadge) countBadge.textContent = '0';
+                return;
+            }
+            
+            if (countBadge) countBadge.textContent = json.data.length;
+            
+            tbody.innerHTML = json.data.map((t, idx) => {
+                let trapBadgeClass = 'bg-secondary';
+                const trapType = t.trap_type || 'Unknown';
+                
+                if (trapType.toLowerCase().includes('up') || trapType.toLowerCase().includes('start')) {
+                    trapBadgeClass = 'bg-success';
+                } else if (trapType.toLowerCase().includes('down')) {
+                    trapBadgeClass = 'bg-danger';
+                } else if (trapType.toLowerCase().includes('auth') || trapType.toLowerCase().includes('fail')) {
+                    trapBadgeClass = 'bg-warning text-dark';
+                }
+                
+                // Transform varbinds to simple key-value format
+                const simplifiedVarbinds = this.simplifyVarbinds(t.varbinds, t.resolved);
+                const varbindsJson = JSON.stringify(simplifiedVarbinds, null, 2);
+                const varbindsPreview = varbindsJson.substring(0, 80) + '...';
+                
+                return `
+                    <tr>
+                        <td class="small text-muted">${t.time_str}</td>
+                        <td><code class="small">${t.source}</code></td>
+                        <td>
+                            <span class="badge ${trapBadgeClass}">${trapType}</span>
+                        </td>
+                        <td>
+                            <code class="small" style="cursor: pointer;" onclick="TrapsModule.showTrapDetails(${idx})" title="Click to view full JSON">
+                                ${varbindsPreview}
+                            </code>
+                        </td>
+                        <td>
+                            <button class="btn btn-xs btn-outline-primary py-0 px-1 me-1" onclick="TrapsModule.copyTrap(${idx})" title="Copy JSON">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="btn btn-xs btn-outline-success py-0 px-1" onclick="TrapsModule.downloadTrap(${idx})" title="Download">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Store traps for actions
+            this.receivedTraps = json.data;
+            
+        } catch(e) {
+            console.error('Failed to load traps:', e);
+        }
+    },
+
+    simplifyVarbinds: function(varbinds, resolved) {
+        const simplified = {};
+        
+        if (Array.isArray(varbinds)) {
+            // Backend returns array format: [{oid, name, value, resolved}, ...]
+            varbinds.forEach(vb => {
+                // Skip snmpTrapOID
+                if (vb.oid && vb.oid.includes('1.3.6.1.6.3.1.1.4.1.0')) return;
+                if (vb.name && vb.name.includes('snmpTrapOID')) return;
+                
+                // Use resolved name if available, otherwise use OID
+                let key = vb.oid;
+                if (resolved && vb.resolved && vb.name && vb.name !== vb.oid) {
+                    key = vb.name;
+                }
+                
+                simplified[key] = vb.value;
+            });
+        } else if (typeof varbinds === 'object') {
+            // Already in object format
+            return varbinds;
+        }
+        
+        return simplified;
+    },
+
+    showTrapDetails: function(idx) {
+        const trap = this.receivedTraps[idx];
+        
+        // Simplify varbinds for display
+        const simplifiedVarbinds = this.simplifyVarbinds(trap.varbinds, trap.resolved);
+        
+        // Create display object with simplified varbinds
+        const displayTrap = {
+            timestamp: trap.timestamp,
+            time: trap.time_str,
+            source: trap.source,
+            trap_type: trap.trap_type,
+            varbinds: simplifiedVarbinds,
+            resolved: trap.resolved
+        };
+        
+        const json = JSON.stringify(displayTrap, null, 2);
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Trap Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <pre class="bg-dark text-light p-3 rounded" style="max-height: 500px; overflow-y: auto;">${json}</pre>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-sm btn-primary py-1 px-2" onclick="navigator.clipboard.writeText(\`${json.replace(/`/g, '\\`')}\`); TrapsModule.showNotification('Copied!', 'success');">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <button class="btn btn-sm btn-secondary py-1 px-2" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        modal.addEventListener('hidden.bs.modal', () => modal.remove());
+    },
+
+    copyTrap: function(idx) {
+        const trap = this.receivedTraps[idx];
+        const simplifiedVarbinds = this.simplifyVarbinds(trap.varbinds, trap.resolved);
+        
+        const displayTrap = {
+            timestamp: trap.timestamp,
+            time: trap.time_str,
+            source: trap.source,
+            trap_type: trap.trap_type,
+            varbinds: simplifiedVarbinds,
+            resolved: trap.resolved
+        };
+        
+        const json = JSON.stringify(displayTrap, null, 2);
+        navigator.clipboard.writeText(json);
+        this.showNotification('Trap copied to clipboard', 'success');
+    },
+
+    downloadTrap: function(idx) {
+        const trap = this.receivedTraps[idx];
+        const simplifiedVarbinds = this.simplifyVarbinds(trap.varbinds, trap.resolved);
+        
+        const displayTrap = {
+            timestamp: trap.timestamp,
+            time: trap.time_str,
+            source: trap.source,
+            trap_type: trap.trap_type,
+            varbinds: simplifiedVarbinds,
+            resolved: trap.resolved
+        };
+        
+        const json = JSON.stringify(displayTrap, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `trap_${trap.timestamp}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    },
+
+    downloadAllTraps: function() {
+        if (!this.receivedTraps || this.receivedTraps.length === 0) {
+            alert('No traps to download');
+            return;
+        }
+        
+        // Simplify all traps
+        const simplifiedTraps = this.receivedTraps.map(trap => ({
+            timestamp: trap.timestamp,
+            time: trap.time_str,
+            source: trap.source,
+            trap_type: trap.trap_type,
+            varbinds: this.simplifyVarbinds(trap.varbinds, trap.resolved),
+            resolved: trap.resolved
+        }));
+        
+        const json = JSON.stringify(simplifiedTraps, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `all_traps_${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    },
+
+    clearTraps: async function() {
+        if (!confirm('Clear all received traps?')) return;
+        
+        await fetch('/api/traps/', {method:'DELETE'});
+        this.loadTraps();
+    },
+
+    // ==================== Utilities ====================
+
+    showNotification: function(message, type = 'info') {
+        const banner = document.createElement('div');
+        banner.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        banner.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px;';
+        banner.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(banner);
+        
+        setTimeout(() => {
+            banner.remove();
+        }, 3000);
+    }
+};
+
+===== /workspaces/snmp-studio/frontend/src/js/modules/dashboard.js =====
+window.DashboardModule = {
+    intervalId: null,
+
+    init: function() {
+        this.loadStats();
+        this.intervalId = setInterval(() => this.loadStats(), 5000);
+    },
+
+    destroy: function() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+    },
+
+    loadStats: async function() {
+        try {
+            // MIB Stats
+            const mibRes = await fetch('/api/mibs/status');
+            const mibData = await mibRes.json();
+            document.getElementById('stat-mibs').textContent = mibData.loaded;
+            
+            const trapRes = await fetch('/api/mibs/traps');
+            const trapData = await trapRes.json();
+            document.getElementById('stat-traps').textContent = trapData.traps.length;
+            
+            // Simulator Status
+            const simRes = await fetch('/api/simulator/status');
+            const simData = await simRes.json();
+            const simEl = document.getElementById('stat-simulator');
+            if (simData.running) {
+                simEl.textContent = 'Online';
+                simEl.className = 'mb-0 text-success fw-bold';
+            } else {
+                simEl.textContent = 'Offline';
+                simEl.className = 'mb-0 text-secondary';
+            }
+            
+            // Trap Receiver Status
+            const recRes = await fetch('/api/traps/status');
+            const recData = await recRes.json();
+            const recEl = document.getElementById('stat-receiver');
+            if (recData.running) {
+                recEl.textContent = 'Running';
+                recEl.className = 'mb-0 text-success fw-bold';
+            } else {
+                recEl.textContent = 'Stopped';
+                recEl.className = 'mb-0 text-secondary';
+            }
+            
+        } catch (e) {
+            console.error('Failed to load stats:', e);
+        }
+    }
+};
+
+===== /workspaces/snmp-studio/frontend/src/js/modules/simulator.js =====
+window.SimulatorModule = {
+    intervalId: null,
+
+    init: function() {
+        this.destroy();
+        
+        const area = document.getElementById("sim-log-area");
+        if (area && window.AppState.logs.length > 0) {
+            area.innerHTML = window.AppState.logs.join("");
+            area.scrollTop = area.scrollHeight;
+        } else if (area) {
+            area.innerHTML = '<div class="text-muted small p-2">Waiting for events...</div>';
+        }
+
+        if (window.AppState.simulator) {
+            this.updateUI(window.AppState.simulator);
+        } else {
+            this.setButtons(false); 
+        }
+
+        this.loadCustomData();
+
+        this.fetchStatus();
+        this.intervalId = setInterval(() => this.fetchStatus(), 10000);
+    },
+
+    destroy: function() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+    },
+
+    // FIX: Updated API path
+    loadCustomData: async function() {
+        const editor = document.getElementById('custom-data-editor');
+        if (!editor) return;
+
+        try {
+            const res = await fetch('/api/simulator/data');
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            const data = await res.json();
+            editor.value = JSON.stringify(data, null, 2);
+        } catch (e) {
+            console.error('Failed to load custom data:', e);
+            editor.value = '{}';
+        }
+    },
+
+    // FIX: Updated API path and response handling
+    saveCustomData: async function() {
+        const editor = document.getElementById('custom-data-editor');
+        const content = editor.value;
+
+        try {
+            // Validate JSON
+            const json = JSON.parse(content);
+
+            // Save
+            const res = await fetch('/api/simulator/data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(json)
+            });
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            // Log success
+            this.log(`<span class="text-success">Custom data saved: ${data.message}</span>`);
+            
+            // Show notification
+            const banner = document.createElement('div');
+            banner.className = 'alert alert-success alert-dismissible fade show position-fixed';
+            banner.style.cssText = 'top: 80px; right: 20px; z-index: 9999;';
+            banner.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i> ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(banner);
+            setTimeout(() => banner.remove(), 3000);
+
+        } catch (e) {
+            console.error('Save error:', e);
+            alert('Failed to save custom data:\n\n' + e.message);
+        }
+    },
+
+    start: async function() {
+        const port = document.getElementById("sim-config-port").value;
+        const comm = document.getElementById("sim-config-comm").value;
+        
+        this.log(`Starting simulator on Port ${port}...`);
+        
+        await fetch('/api/simulator/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ port: parseInt(port), community: comm })
+        });
+        this.fetchStatus();
+    },
+
+    stop: async function() {
+        this.log("Stopping simulator...");
+        await fetch('/api/simulator/stop', { method: 'POST' });
+        this.fetchStatus();
+    },
+
+    restart: async function() {
+        this.log("Restarting...");
+        await this.stop();
+        setTimeout(() => this.start(), 1000);
+    },
+
+    fetchStatus: async function() {
+        try {
+            const res = await fetch('/api/simulator/status');
+            if (!res.ok) return;
+            const data = await res.json();
+            
+            window.AppState.simulator = data;
+            this.updateUI(data);
+        } catch (e) {
+            console.error("Sim status error", e);
+        }
+    },
+
+    updateUI: function(data) {
+        const badge = document.getElementById("sim-badge");
+        const stateText = document.getElementById("sim-state-text");
+        const detailText = document.getElementById("sim-detail-text");
+        
+        if (!badge) return;
+
+        if (data.running) {
+            badge.className = "badge bg-success";
+            badge.textContent = "RUNNING";
+            stateText.textContent = "Online";
+            stateText.className = "mb-0 text-success fw-bold";
+            detailText.innerHTML = `Listening on <strong>UDP ${data.port}</strong> <br> Community: <code>${data.community}</code> <br> PID: ${data.pid}`;
+            
+            this.setButtons(true);
+            
+            const pInput = document.getElementById("sim-config-port");
+            const cInput = document.getElementById("sim-config-comm");
+            if(pInput && document.activeElement !== pInput) pInput.value = data.port;
+            if(cInput && document.activeElement !== cInput) cInput.value = data.community;
+        } else {
+            badge.className = "badge bg-secondary";
+            badge.textContent = "STOPPED";
+            stateText.textContent = "Offline";
+            stateText.className = "mb-0 text-secondary fw-bold";
+            detailText.textContent = "Service is stopped.";
+            
+            this.setButtons(false);
+        }
+    },
+
+    setButtons: function(isRunning) {
+        const btnStart = document.getElementById("btn-start");
+        const btnStop = document.getElementById("btn-stop");
+        const btnRestart = document.getElementById("btn-restart");
+        
+        if(!btnStart) return;
+        btnStart.disabled = isRunning;
+        btnStop.disabled = !isRunning;
+        btnRestart.disabled = !isRunning;
+    },
+
+    log: function(msg, type = 'info') {
+        const area = document.getElementById("sim-log-area");
+        const time = new Date().toLocaleTimeString();
+        
+        let icon = 'fa-info-circle';
+        let color = 'text-muted';
+        
+        if (type === 'success') {
+            icon = 'fa-check-circle';
+            color = 'text-success';
+        } else if (type === 'error') {
+            icon = 'fa-exclamation-circle';
+            color = 'text-danger';
+        } else if (type === 'warning') {
+            icon = 'fa-exclamation-triangle';
+            color = 'text-warning';
+        }
+        
+        const html = `
+            <div class="border-bottom py-2 px-2">
+                <span class="text-muted small">[${time}]</span>
+                <i class="fas ${icon} ${color} ms-2"></i>
+                <span class="ms-2">${msg}</span>
+            </div>
+        `;
+        
+        window.AppState.logs.push(html);
+        if (window.AppState.logs.length > 100) window.AppState.logs.shift();
+
+        if(area) {
+            if(area.textContent.includes("Waiting for events")) area.innerHTML = "";
+            area.innerHTML += html;
+            area.scrollTop = area.scrollHeight;
+        }
+    },
+
+};
+
+===== /workspaces/snmp-studio/frontend/src/js/modules/mibs.js =====
+window.MibsModule = {
+    currentTrapData: null,
+    uploadModal: null,
+    trapDetailsModal: null,
+    allTraps: [],
+    currentStatus: null, // Track current status
+
+    init: function() {
+        this.uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+        this.trapDetailsModal = new bootstrap.Modal(document.getElementById('trapDetailsModal'));
+
+        this.loadStatus();
+        this.loadTraps();
+
+        document.getElementById('trap-search').addEventListener('input', (e) => {
+            this.filterTraps(e.target.value);
+        });
+    },
+
+    loadStatus: async function() {
+        try {
+            const res = await fetch('/api/mibs/status');
+            const data = await res.json();
+            
+            this.currentStatus = data; // Store current status
+
+            document.getElementById('mib-count-loaded').textContent = data.loaded;
+            document.getElementById('mib-count-failed').textContent = data.failed;
+
+            const totalTraps = data.mibs.reduce((sum, mib) => sum + mib.traps, 0);
+            document.getElementById('mib-count-traps').textContent = totalTraps;
+
+            this.renderMibList(data.mibs);
+
+            // Show/hide failed MIBs card based on actual errors
+            const failedCard = document.getElementById('failed-mibs-card');
+            if (data.errors.length > 0) {
+                this.renderFailedMibs(data.errors);
+                failedCard.style.display = 'block';
+            } else {
+                failedCard.style.display = 'none';
+            }
+        } catch (e) {
+            console.error('Failed to load MIB status', e);
+        }
+    },
+
+    renderMibList: function(mibs) {
+        const list = document.getElementById('mib-list');
+        
+        if (mibs.length === 0) {
+            list.innerHTML = '<li class="list-group-item text-center text-muted">No MIBs loaded</li>';
+            return;
+        }
+
+        list.innerHTML = mibs.map(mib => `
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-book text-success me-2"></i>
+                        <strong>${mib.name}</strong>
+                        <span class="badge bg-success ms-2">✓</span>
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                        ${mib.objects} objects · ${mib.traps} traps
+                        ${mib.imports.length > 0 ? `· Imports: ${mib.imports.slice(0, 3).join(', ')}${mib.imports.length > 3 ? '...' : ''}` : ''}
+                    </small>
+                </div>
+                <button class="btn btn-sm btn-outline-danger" onclick="MibsModule.deleteMib('${mib.file}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </li>
+        `).join('');
+    },
+
+    renderFailedMibs: function(errors) {
+        const list = document.getElementById('failed-mib-list');
+
+        list.innerHTML = errors.map(mib => `
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                            <strong class="text-danger">${mib.name}</strong>
+                        </div>
+                        <div class="small text-muted mt-1 font-monospace" style="max-width: 500px; overflow-wrap: break-word;">
+                            ${mib.error || 'Unknown error'}
+                        </div>
+                        ${mib.status === 'missing_deps' ? `
+                            <div class="mt-2">
+                                <span class="badge bg-warning text-dark">Missing dependencies</span>
+                                <button class="btn btn-xs btn-outline-info ms-2" onclick="MibsModule.showDependencyHelp()">
+                                    <i class="fas fa-question-circle"></i> Help
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="MibsModule.deleteMib('${mib.file}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </li>
+        `).join('');
+    },
+	
+    loadTraps: async function() {
+        try {
+            const res = await fetch('/api/mibs/traps');
+            const data = await res.json();
+
+            this.allTraps = data.traps;
+            this.renderTraps(data.traps);
+        } catch (e) {
+            console.error('Failed to load traps', e);
+        }
+    },
+
+    renderTraps: function(traps) {
+        const tbody = document.getElementById('trap-table-body');
+    
+        if (traps.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted p-3">No traps found</td></tr>';
+            return;
+        }
+    
+        tbody.innerHTML = traps.map(trap => `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-bell text-warning me-2"></i>
+                        <strong>${trap.name}</strong>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <span class="badge bg-secondary" style="font-size: 0.7rem;">${trap.module}</span>
+                </td>
+                <td class="text-center">
+                    <span class="badge bg-info" style="font-size: 0.7rem;">${trap.objects.length}</span>
+                </td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-primary btn-sm py-0 px-2" 
+                                onclick='MibsModule.showTrapDetails(${JSON.stringify(trap).replace(/'/g, "&apos;")})' 
+                                title="View Details">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        <button class="btn btn-success btn-sm py-0 px-2" 
+                                onclick='MibsModule.useTrapDirectly(${JSON.stringify(trap).replace(/'/g, "&apos;")})' 
+                                title="Send Trap">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    },
+
+
+    // NEW: Send trap directly without modal
+    useTrapDirectly: function(trap) {
+        sessionStorage.setItem('selectedTrap', JSON.stringify(trap));
+        window.location.hash = '#traps';
+    },
+
+
+    filterTraps: function(query) {
+        if (!this.allTraps) return;
+
+        const filtered = this.allTraps.filter(trap => {
+            const searchStr = `${trap.name} ${trap.module} ${trap.oid} ${trap.description}`.toLowerCase();
+            return searchStr.includes(query.toLowerCase());
+        });
+
+        this.renderTraps(filtered);
+    },
+
+    showTrapDetails: function(trap) {
+        this.currentTrapData = trap;
+    
+        const title = document.getElementById('trap-detail-title');
+        const body = document.getElementById('trap-detail-body');
+    
+        title.textContent = trap.full_name;
+    
+        body.innerHTML = `
+            <div class="mb-3">
+                <label class="fw-bold">Name:</label>
+                <div><code>${trap.name}</code></div>
+            </div>
+            <div class="mb-3">
+                <label class="fw-bold">Full Name:</label>
+                <div><code>${trap.full_name}</code></div>
+            </div>
+            <div class="mb-3">
+                <label class="fw-bold">OID:</label>
+                <div>
+                    <code>${trap.oid}</code>
+                    <button class="btn btn-xs btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('${trap.oid}')">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="fw-bold">Module:</label>
+                <div><span class="badge bg-secondary">${trap.module}</span></div>
+            </div>
+            <div class="mb-3">
+                <label class="fw-bold">Description:</label>
+                <div class="text-muted">${trap.description || 'No description available'}</div>
+            </div>
+            <div class="mb-3">
+                <label class="fw-bold">Associated Objects (VarBinds):</label>
+                ${trap.objects.length > 0 ? `
+                    <ul class="list-group mt-2">
+                        ${trap.objects.map(obj => `
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <code>${obj.name}</code>
+                                    <div class="small text-muted">${obj.full_name}</div>
+                                </div>
+                                <code class="text-muted small">${obj.oid}</code>
+                            </li>
+                        `).join('')}
+                    </ul>
+                ` : '<div class="text-muted">No associated objects defined</div>'}
+            </div>
+        `;
+    
+        this.trapDetailsModal.show();
+    },
+
+    useTrapInSender: function() {
+        if (!this.currentTrapData) return;
+
+        sessionStorage.setItem('selectedTrap', JSON.stringify(this.currentTrapData));
+        window.location.hash = '#traps';
+        this.trapDetailsModal.hide();
+    },
+
+    showUploadModal: function() {
+        document.getElementById('mib-upload-input').value = '';
+        document.getElementById('upload-validation-results').style.display = 'none';
+        document.getElementById('dependency-alert').style.display = 'none';
+        document.getElementById('btn-validate').disabled = false;
+        document.getElementById('btn-upload').disabled = true;
+
+        this.uploadModal.show();
+    },
+
+    validateFiles: async function() {
+        const input = document.getElementById('mib-upload-input');
+        if (!input.files || input.files.length === 0) {
+            alert('Please select at least one file');
+            return;
+        }
+
+        const btn = document.getElementById('btn-validate');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validating...';
+        btn.disabled = true;
+
+        const resultsDiv = document.getElementById('upload-validation-results');
+        const validationList = document.getElementById('validation-list');
+        const depAlert = document.getElementById('dependency-alert');
+        const depList = document.getElementById('dependency-list');
+
+        try {
+            const formData = new FormData();
+            for (let file of input.files) {
+                formData.append('files', file);
+            }
+
+            const res = await fetch('/api/mibs/validate-batch', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+
+            validationList.innerHTML = data.files.map(r => {
+                const hasLocalMissing = r.missing_deps.length > 0;
+                const statusClass = r.valid ? 'border-success' : 'border-danger';
+                const statusBadge = r.valid ? 
+                    '<span class="badge bg-success">✓ Valid</span>' : 
+                    '<span class="badge bg-danger">✗ Invalid</span>';
+
+                return `
+                    <div class="card mb-2 ${statusClass}">
+                        <div class="card-body p-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${r.filename}</strong>
+                                    <span class="text-muted small ms-2">(${r.mib_name})</span>
+                                </div>
+                                ${statusBadge}
+                            </div>
+                            
+                            ${r.errors.length > 0 ? `
+                                <div class="alert alert-danger py-1 px-2 mt-2 mb-0 small">
+                                    <strong>Errors:</strong><br>
+                                    ${r.errors.join('<br>')}
+                                </div>
+                            ` : ''}
+                            
+                            ${r.imports.length > 0 ? `
+                                <div class="text-muted small mt-2">
+                                    <strong>Imports:</strong> ${r.imports.join(', ')}
+                                </div>
+                            ` : ''}
+                            
+                            ${hasLocalMissing ? `
+                                <div class="alert alert-warning py-1 px-2 mt-2 mb-0 small">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>Missing:</strong> ${r.missing_deps.join(', ')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            resultsDiv.style.display = 'block';
+
+            if (data.global_missing_deps.length > 0) {
+                depList.innerHTML = `
+                    <p class="mb-2">The following dependencies are not available:</p>
+                    <ul class="mb-2">
+                        ${data.global_missing_deps.map(dep => `
+                            <li><code>${dep}</code></li>
+                        `).join('')}
+                    </ul>
+                    <p class="mb-0 small">
+                        <strong>Options:</strong><br>
+                        • Upload these MIBs in a separate batch first<br>
+                        • Continue anyway (affected MIBs will fail to load)
+                    </p>
+                `;
+                depAlert.style.display = 'block';
+            } else {
+                depAlert.style.display = 'none';
+            }
+
+            document.getElementById('btn-upload').disabled = !data.can_upload;
+
+            if (data.can_upload) {
+                document.getElementById('btn-upload').innerHTML = 
+                    '<i class="fas fa-upload"></i> Upload & Reload';
+            } else {
+                document.getElementById('btn-upload').innerHTML = 
+                    '<i class="fas fa-ban"></i> Cannot Upload (Fix Errors)';
+            }
+
+        } catch (e) {
+            console.error('Validation error:', e);
+            alert('Validation failed: ' + e.message);
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    },
+
+    uploadFiles: async function() {
+        const input = document.getElementById('mib-upload-input');
+        const btn = document.getElementById('btn-upload');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+        btn.disabled = true;
+
+        try {
+            const formData = new FormData();
+            for (let file of input.files) {
+                formData.append('files', file);
+            }
+
+            const res = await fetch('/api/mibs/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Upload failed (${res.status}): ${errorText}`);
+            }
+
+            const data = await res.json();
+
+            if (!data || !data.results || !Array.isArray(data.results)) {
+                throw new Error('Invalid response format from server');
+            }
+
+            const loaded = data.results.filter(r => r.status === 'loaded').length;
+            const failed = data.results.filter(r => r.status === 'failed').length;
+            const errors = data.results.filter(r => r.status === 'error').length;
+
+            let message = `Upload Complete!\n\n`;
+            message += `✓ Successfully loaded: ${loaded}\n`;
+            
+            if (failed > 0) {
+                message += `⚠ Failed to load: ${failed}\n`;
+            }
+            
+            if (errors > 0) {
+                message += `✗ Upload errors: ${errors}\n`;
+            }
+
+            const problemFiles = data.results.filter(r => 
+                r.status === 'failed' || r.status === 'error'
+            );
+            
+            if (problemFiles.length > 0) {
+                message += `\nDetails:\n`;
+                problemFiles.forEach(r => {
+                    message += `• ${r.filename}: ${r.error || 'Unknown error'}\n`;
+                });
+            }
+
+            alert(message);
+
+            await this.loadStatus();
+            await this.loadTraps();
+
+            this.uploadModal.hide();
+
+        } catch (e) {
+            console.error('Upload error:', e);
+            alert('Upload failed:\n\n' + e.message);
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    },
+
+
+    reloadMibs: async function() {
+        const btn = event.target;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/mibs/reload', { method: 'POST' });
+            const data = await res.json();
+
+            await this.loadStatus();
+            await this.loadTraps();
+
+            // Show success notification
+            this.showNotification(`Reloaded: ${data.loaded} loaded, ${data.failed} failed`, 'success');
+            
+            console.log('MIBs reloaded:', data);
+        } catch (e) {
+            console.error('Reload failed', e);
+            this.showNotification('Reload failed: ' + e.message, 'error');
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    },
+
+    showNotification: function(message, type = 'info') {
+        const banner = document.createElement('div');
+        banner.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        banner.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px;';
+        banner.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(banner);
+        
+        setTimeout(() => {
+            banner.remove();
+        }, 4000);
+    },
+	
+    deleteMib: async function(filename) {
+        if (!confirm(`Delete ${filename}?`)) return;
+
+        try {
+            await fetch(`/api/mibs/${filename}`, { method: 'DELETE' });
+            await this.reloadMibs();
+        } catch (e) {
+            alert('Delete failed: ' + e.message);
+        }
+    },
+
+    showDependencyHelp: function() {
+        alert(
+            'How to resolve missing dependencies:\n\n' +
+            '1. Download the required MIB files from vendor websites or mibs.pysnmp.com\n' +
+            '2. Upload them using this same dialog\n' +
+            '3. Re-upload the original MIB after dependencies are loaded\n\n' +
+            'Common sources:\n' +
+            '- Standard MIBs: https://www.iana.org/assignments/ianaiftype-mib\n' +
+            '- Vendor MIBs: Check manufacturer support pages'
+        );
+    }
+
+};
+
+===== /workspaces/snmp-studio/frontend/src/js/modules/walker.js =====
+window.WalkerModule = {
+    lastData: null,
+    lastDisplayMode: null,
+    // NEW: Store form state
+    formState: {
+        target: '127.0.0.1',
+        port: 1061,
+        community: 'public',
+        oid: 'IF-MIB::ifTable',
+        parse: true,
+        use_mibs: true
+    },
+
+    init: function() { 
+        this.toggleOptions();
+        this.restoreFormState(); // Restore form inputs
+        
+        // Restore last result if available
+        if (this.lastData) {
+            this.restoreLastResult();
+        }
+    },
+
+    // NEW: Restore form state
+    restoreFormState: function() {
+        document.getElementById("walk-target").value = this.formState.target;
+        document.getElementById("walk-port").value = this.formState.port;
+        document.getElementById("walk-comm").value = this.formState.community;
+        document.getElementById("walk-oid").value = this.formState.oid;
+        document.getElementById("walk-parse-toggle").checked = this.formState.parse;
+        document.getElementById("walk-use-mibs").checked = this.formState.use_mibs;
+        
+        this.toggleOptions(); // Apply mutual exclusion
+    },
+
+    // NEW: Save form state
+    saveFormState: function() {
+        this.formState = {
+            target: document.getElementById("walk-target").value,
+            port: parseInt(document.getElementById("walk-port").value),
+            community: document.getElementById("walk-comm").value,
+            oid: document.getElementById("walk-oid").value,
+            parse: document.getElementById("walk-parse-toggle").checked,
+            use_mibs: document.getElementById("walk-use-mibs").checked
+        };
+    },
+
+    toggleOptions: function() {
+        const parseEl = document.getElementById("walk-parse-toggle");
+        const mibEl = document.getElementById("walk-use-mibs");
+        
+        if (parseEl.checked) {
+            mibEl.checked = true;
+            mibEl.disabled = true;
+        } else {
+            mibEl.disabled = false;
+        }
+    },
+
+    execute: async function() {
+        const btn = document.querySelector("button[onclick='WalkerModule.execute()']");
+        const output = document.getElementById("walk-output");
+        const countBadge = document.getElementById("walk-count");
+        
+        // 1. Get Inputs
+        const target = document.getElementById("walk-target").value;
+        const port = parseInt(document.getElementById("walk-port").value);
+        const community = document.getElementById("walk-comm").value;
+        const oid = document.getElementById("walk-oid").value;
+        const parse = document.getElementById("walk-parse-toggle").checked;
+        const use_mibs = document.getElementById("walk-use-mibs").checked;
+
+        // Save form state
+        this.saveFormState();
+
+        // 2. UI Loading State
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+        btn.disabled = true;
+        output.textContent = "Walking...";
+        output.className = "m-0 p-3 h-100 border-0 bg-light text-muted";
+
+        try {
+            // 3. Call API
+            const res = await fetch('/api/walk/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target, port, community, oid, parse, use_mibs })
+            });
+
+            const data = await res.json();
+            console.log("Walker API Response:", data);
+
+            if (!res.ok) throw new Error(data.detail || "Walk failed");
+
+            // 4. Handle Success
+            this.lastData = data.data;
+            this.lastDisplayMode = data.mode;
+            countBadge.textContent = `${data.count} items`;
+            
+            output.className = "m-0 p-3 h-100 border-0 bg-white text-dark font-monospace";
+
+            // 5. Render
+            if (data.mode === 'parsed') {
+                output.textContent = JSON.stringify(data.data, null, 2);
+            } else {
+                if (Array.isArray(data.data)) {
+                    output.textContent = data.data.join("\n");
+                } else {
+                    output.textContent = String(data.data);
+                }
+            }
+
+        } catch (e) {
+            console.error("Walker Error:", e);
+            output.textContent = `Error: ${e.message}`;
+            output.className = "m-0 p-3 h-100 border-0 bg-light text-danger fw-bold";
+            countBadge.textContent = "0 items";
+            this.lastData = null;
+            this.lastDisplayMode = null;
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    },
+
+    restoreLastResult: function() {
+        const output = document.getElementById("walk-output");
+        const countBadge = document.getElementById("walk-count");
+        
+        if (!this.lastData) return;
+        
+        let count = 0;
+        if (Array.isArray(this.lastData)) {
+            count = this.lastData.length;
+        }
+        
+        countBadge.textContent = `${count} items`;
+        output.className = "m-0 p-3 h-100 border-0 bg-white text-dark font-monospace";
+        
+        if (this.lastDisplayMode === 'parsed') {
+            output.textContent = JSON.stringify(this.lastData, null, 2);
+        } else {
+            if (Array.isArray(this.lastData)) {
+                output.textContent = this.lastData.join("\n");
+            } else {
+                output.textContent = String(this.lastData);
+            }
+        }
+    },
+
+    copyToClipboard: function() {
+        const text = document.getElementById("walk-output").textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.querySelector("button[onclick='WalkerModule.copyToClipboard()']");
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => btn.innerHTML = original, 1000);
+        });
+    },
+    
+    download: function(format) {
+        if (!this.lastData) return alert("No data to export!");
+        
+        let content = "";
+        let mime = "text/plain";
+        let ext = "txt";
+
+        if (format === 'json') {
+            content = JSON.stringify(this.lastData, null, 2);
+            mime = "application/json";
+            ext = "json";
+        } else if (format === 'csv') {
+            if (Array.isArray(this.lastData) && this.lastData.length > 0) {
+                const allKeys = new Set();
+                this.lastData.forEach(row => Object.keys(row).forEach(k => allKeys.add(k)));
+                const keys = Array.from(allKeys);
+
+                content = keys.join(",") + "\n";
+                content += this.lastData.map(row => {
+                    return keys.map(k => {
+                        let val = row[k] === undefined ? "" : row[k];
+                        if (typeof val === 'object') val = JSON.stringify(val).replace(/"/g, '""');
+                        else val = String(val).replace(/"/g, '""');
+                        return `"${val}"`;
+                    }).join(",");
+                }).join("\n");
+            } else {
+                content = "No CSV compatible data";
+            }
+            mime = "text/csv";
+            ext = "csv";
+        }
+
+        const blob = new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `snmp_export_${Date.now()}.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+};
+
+===== /workspaces/snmp-studio/frontend/src/js/app.js =====
+const API_BASE = "/api";
+const HTML_CACHE = {}; 
+let currentModule = null; 
+
+window.AppState = {
+    simulator: null,
+    logs: []
+};
+
+const originalFetch = window.fetch;
+window.fetch = async function(url, options = {}) {
+    const token = sessionStorage.getItem("snmp_token");
+    if (token) {
+        if (!options.headers) options.headers = {};
+        if (options.headers instanceof Headers) {
+            options.headers.append("X-Auth-Token", token);
+        } else {
+            options.headers["X-Auth-Token"] = token;
+        }
+    }
+
+    const response = await originalFetch(url, options);
+    
+    if (response.status === 401 && !url.includes("/login")) {
+        logout(false); 
+    }
+
+    return response;
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    initAuth();
+});
+
+async function initAuth() {
+    const loginScreen = document.getElementById("login-screen");
+    const wrapper = document.getElementById("wrapper");
+    const token = sessionStorage.getItem("snmp_token");
+
+    if (!token) {
+        loginScreen.style.display = "flex";
+        wrapper.style.display = "none";
+    } else {
+        try {
+            const res = await fetch('/api/settings/check');
+            if (res.ok) {
+                const data = await res.json();
+                updateUserUI(data.user);
+                showApp();
+            } else {
+                logout(false);
+            }
+        } catch (e) {
+            console.error("Auth Check Failed", e);
+            logout(false); 
+        }
+    }
+}
+
+window.handleLogin = async function(e) {
+    e.preventDefault();
+    const user = document.getElementById("login-user").value;
+    const pass = document.getElementById("login-pass").value;
+    const btn = document.getElementById("login-btn");
+    const err = document.getElementById("login-error");
+
+    btn.disabled = true;
+    err.classList.add("d-none");
+
+    try {
+        const res = await originalFetch('/api/settings/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, password: pass })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            sessionStorage.setItem("snmp_token", data.token);
+            updateUserUI(data.username);
+            showApp(); 
+        } else {
+            err.textContent = data.detail || "Login Failed";
+            err.classList.remove("d-none");
+        }
+    } catch (e) {
+        err.textContent = "Connection Error";
+        err.classList.remove("d-none");
+    } finally {
+        btn.disabled = false;
+    }
+};
+
+function showApp() {
+    const loginScreen = document.getElementById("login-screen");
+    const wrapper = document.getElementById("wrapper");
+
+    if (loginScreen) {
+        loginScreen.classList.remove("d-flex"); 
+        loginScreen.style.display = "none";
+    }
+
+    if (wrapper) {
+        wrapper.style.display = "flex";
+    }
+
+    initializeAppLogic();
+}
+
+window.logout = async function(callApi = true) {
+    if (callApi) {
+        try { await fetch('/api/settings/logout', { method: 'POST' }); } catch(e){}
+    }
+    sessionStorage.removeItem("snmp_token");
+    window.location.reload();
+};
+
+function updateUserUI(username) {
+    const el = document.getElementById("nav-user-name");
+    if(el) el.textContent = username;
+}
+
+function initializeAppLogic() {
+    const sidebarToggle = document.querySelector('#sidebarToggle');
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', e => {
+            e.preventDefault();
+            document.body.classList.toggle('sb-sidenav-toggled');
+        });
+    }
+
+    checkBackendHealth();
+    window.addEventListener('hashchange', handleRouting);
+    handleRouting(); 
+}
+
+async function handleRouting() {
+    let moduleName = window.location.hash.substring(1) || 'dashboard';
+    
+    if (currentModule && typeof currentModule.destroy === 'function') {
+        currentModule.destroy();
+    }
+    
+    document.querySelectorAll('.list-group-item').forEach(el => {
+        el.classList.remove('active');
+        if(el.getAttribute('href') === `#${moduleName}`) el.classList.add('active');
+    });
+
+    await loadModule(moduleName);
+}
+
+async function loadModule(moduleName) {
+    const container = document.getElementById("main-content");
+    const title = document.getElementById("page-title");
+
+    const titles = {
+        'dashboard': 'System Overview',
+        'simulator': 'Simulator Manager',
+        'walker': 'Walk & Parse Studio',
+        'traps': 'Trap Receiver & Sender',
+        'mibs': 'MIB Manager',
+        'settings': 'Settings'
+    };
+
+    title.textContent = titles[moduleName] || 'SNMP Studio';
+
+    if (!HTML_CACHE[moduleName]) {
+        try {
+            container.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary"></div></div>';
+            const res = await fetch(`${moduleName}.html`);
+            if (!res.ok) throw new Error("Module not found");
+            HTML_CACHE[moduleName] = await res.text();
+        } catch (e) {
+            container.innerHTML = `<div class="alert alert-danger">Error: ${e.message}</div>`;
+            return;
+        }
+    }
+
+    container.innerHTML = HTML_CACHE[moduleName];
+
+    const moduleMap = {
+        'dashboard': window.DashboardModule,
+        'simulator': window.SimulatorModule,
+        'walker': window.WalkerModule,
+        'traps': window.TrapsModule,
+        'mibs': window.MibsModule,
+        'settings': window.SettingsModule
+    };
+
+    if (moduleMap[moduleName]) {
+        currentModule = moduleMap[moduleName];
+        if(typeof currentModule.init === 'function') {
+            currentModule.init();
+        }
+    }
+}
+
+async function checkBackendHealth() {
+    const badge = document.getElementById("backend-status");
+    try {
+        const res = await fetch(`${API_BASE}/meta`);
+        const data = await res.json();
+        badge.className = "badge bg-success";
+        badge.textContent = "Online";
+        
+        document.getElementById("app-version").textContent = `v${data.version}`;
+    } catch (e) {
+        badge.className = "badge bg-danger";
+        badge.textContent = "Offline";
+    }
+}
+
+===== /workspaces/snmp-studio/frontend/src/traps.html =====
+<div class="row h-100">
+    <!-- LEFT: Trap Sender -->
+<!-- LEFT: Trap Sender -->
+    <div class="col-md-5">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-paper-plane me-2"></i> Trap Sender</span>
+                <button class="btn btn-xs btn-outline-light" onclick="TrapsModule.resetForm()">Reset</button>
+            </div>
+            <div class="card-body">
+                <form onsubmit="TrapsModule.sendTrap(event)">
+                    <!-- Target Settings -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-8">
+                            <label class="small fw-bold">Target IP</label>
+                            <input type="text" id="ts-target" class="form-control form-control-sm" value="127.0.0.1">
+                        </div>
+                        <div class="col-4">
+                            <label class="small fw-bold">Port</label>
+                            <input type="number" id="ts-port" class="form-control form-control-sm" value="1162">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small fw-bold">Community</label>
+                        <input type="text" id="ts-comm" class="form-control form-control-sm" value="public">
+                    </div>
+                    
+                    <hr class="my-2">
+                    
+                    <!-- Trap Selection -->
+                    <label class="small fw-bold">Select Trap</label>
+                    <div class="input-group input-group-sm mb-2">
+                        <select id="ts-trap-select" class="form-select" onchange="TrapsModule.onTrapSelected()">
+                            <option value="">-- Select a trap --</option>
+                        </select>
+                        <button class="btn btn-outline-secondary" type="button" onclick="TrapsModule.loadTrapList()" title="Refresh trap list">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Manual OID Input (Alternative) -->
+                    <div class="input-group input-group-sm mb-3">
+                        <span class="input-group-text">Or enter OID:</span>
+                        <input type="text" id="ts-oid" class="form-control" 
+                            placeholder="IF-MIB::linkDown or 1.3.6..." 
+                            value="IF-MIB::linkDown">
+                    </div>
+
+                    <!-- Dynamic VarBinds -->
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="small fw-bold">VarBinds</label>
+                        <div>
+                            <button type="button" class="btn btn-xs btn-outline-secondary me-1" onclick="TrapsModule.showVarBindPicker()" title="Pick from MIB">
+                                <i class="fas fa-list"></i> Browse
+                            </button>
+                            <button type="button" class="btn btn-xs btn-outline-primary" onclick="TrapsModule.addVarbind()">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="vb-container" style="max-height: 300px; overflow-y: auto;" class="mb-3 border p-2 rounded bg-light">
+                        <div class="text-center text-muted small py-2" id="vb-empty">No VarBinds added</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 btn-sm">
+                        <i class="fas fa-bolt"></i> Send Trap
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Trap Receiver -->
+    <div class="col-md-7">
+        <!-- Control Bar -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <!-- Status -->
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold"><i class="fas fa-satellite-dish me-2"></i> Receiver</span>
+                        <span id="tr-status-badge" class="badge bg-secondary">Stopped</span>
+                    </div>
+                    
+                    <!-- Controls -->
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="number" id="tr-port" class="form-control form-control-sm" 
+                               value="1162" style="width: 70px;" placeholder="Port">
+                        
+                        <input type="text" id="tr-community" class="form-control form-control-sm" 
+                               value="public" style="width: 90px;" placeholder="Community">
+                        
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="tr-resolve-toggle" checked>
+                            <label class="form-check-label small" for="tr-resolve-toggle">Resolve</label>
+                        </div>
+                        
+                        <button class="btn btn-sm btn-success py-1 px-2" id="btn-tr-start" onclick="TrapsModule.startReceiver()">
+                            <i class="fas fa-play"></i> Start
+                        </button>
+                        <button class="btn btn-sm btn-danger py-1 px-2" id="btn-tr-stop" onclick="TrapsModule.stopReceiver()" disabled>
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Trap List Header -->
+        <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+            <span class="small text-muted fw-bold">
+                <i class="fas fa-list me-1"></i> Received Traps
+                <span id="tr-count-badge" class="badge bg-secondary ms-2">0</span>
+            </span>
+            <div>
+                <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="TrapsModule.downloadAllTraps()">
+                    <i class="fas fa-download"></i> Download All
+                </button>
+                <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="TrapsModule.clearTraps()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0 small">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th style="width: 120px;">Time</th>
+                            <th style="width: 130px;">Source</th>
+                            <th style="width: 120px;">Trap Type</th>
+                            <th>VarBinds (JSON)</th>
+                            <th style="width: 80px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tr-table-body">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted p-3">No traps received</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+===== /workspaces/snmp-studio/frontend/src/settings.html =====
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-user-shield me-2 text-primary"></i> Authentication
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Update the login credentials for the application.</p>
+
+                <form onsubmit="SettingsModule.updateAuth(event)">
+                    <!-- Hidden Username for Current Password Association -->
+                    <input type="text" name="username" autocomplete="username" style="display:none;">
+
+                    <!-- Current Password -->
+                    <div class="mb-3 bg-light p-3 rounded border">
+                        <label class="form-label small fw-bold text-muted">Current Password</label>
+                        <input type="password" 
+                            class="form-control" 
+                            id="set-auth-current-pass" 
+                            name="current-password"
+                            placeholder="Required to make changes" 
+                            required 
+                            autocomplete="current-password">
+                    </div>
+
+                    <hr>
+
+                    <!-- New Credentials -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">New Username</label>
+                        <input type="text" 
+                            class="form-control" 
+                            id="set-auth-user" 
+                            name="new-username"
+                            required 
+                            autocomplete="username">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">New Password</label>
+                        <input type="password" 
+                            class="form-control" 
+                            id="set-auth-pass" 
+                            name="new-password"
+                            required 
+                            autocomplete="new-password">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Confirm Password</label>
+                        <input type="password" 
+                            class="form-control" 
+                            id="set-auth-pass-confirm" 
+                            name="confirm-password"
+                            required 
+                            autocomplete="new-password">
+                    </div>
+                    
+                    <div id="auth-msg" class="alert alert-danger d-none small py-2 mb-3"></div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Credentials
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+===== /workspaces/snmp-studio/frontend/src/index.html =====
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNMP Studio</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- Login Screen -->
+<div id="login-screen" class="position-fixed top-0 start-0 w-100 h-100 bg-light d-flex flex-column justify-content-center align-items-center" style="z-index: 9999;">
+    <div class="card shadow-lg border-0" style="width: 350px;">
+        <div class="card-body p-4 text-center">
+            <div class="mb-4">
+                <i class="fas fa-network-wired fa-3x text-primary"></i>
+            </div>
+            <h4 class="mb-3">SNMP Studio</h4>
+            
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="mb-3 text-start">
+                    <label class="form-label small fw-bold">Username</label>
+                    <input type="text" id="login-user" class="form-control" placeholder="admin" required autocomplete="username">
+                </div>
+                <div class="mb-3 text-start">
+                    <label class="form-label small fw-bold">Password</label>
+                    <input type="password" id="login-pass" class="form-control" placeholder="••••••" required autocomplete="current-password">
+                </div>
+                <div id="login-error" class="alert alert-danger py-2 small d-none"></div>
+                <button type="submit" class="btn btn-primary w-100" id="login-btn">
+                    Log In
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Main Application Wrapper -->
+<div id="wrapper" style="display: none;">
+    <!-- Sidebar -->
+    <div class="bg-dark text-white border-end" id="sidebar-wrapper">
+        <div class="sidebar-heading border-bottom bg-dark fw-bold text-truncate">
+            <i class="fa-solid fa-network-wired"></i> <span class="ms-2">SNMP Studio</span>
+        </div>
+        
+        <div class="list-group list-group-flush flex-grow-1">
+            <a class="list-group-item list-group-item-action bg-dark text-white" href="#dashboard">
+                <i class="fas fa-tachometer-alt"></i> <span class="ms-2">Dashboard</span>
+            </a>
+            <a class="list-group-item list-group-item-action bg-dark text-white" href="#simulator">
+                <i class="fas fa-server"></i> <span class="ms-2">Simulator</span>
+            </a>
+            <a class="list-group-item list-group-item-action bg-dark text-white" href="#walker">
+                <i class="fas fa-walking"></i> <span class="ms-2">Walk & Parse</span>
+            </a>
+            <a class="list-group-item list-group-item-action bg-dark text-white" href="#traps">
+                <i class="fas fa-bell"></i> <span class="ms-2">Traps</span>
+            </a>
+            <a class="list-group-item list-group-item-action bg-dark text-white" href="#mibs">
+                <i class="fas fa-database"></i> <span class="ms-2">MIB Manager</span>
+            </a>
+            <a class="list-group-item list-group-item-action bg-dark text-white" href="#settings">
+                <i class="fas fa-cog"></i> <span class="ms-2">Settings</span>
+            </a>
+        </div>
+        
+        <div class="p-3 text-center text-secondary small border-top border-secondary bg-dark">
+            <span id="app-version">v0.0.0</span>
+        </div>
+    </div>
+
+    <!-- Page Content -->
+    <div id="page-content-wrapper" class="w-100">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom px-3">
+            <button class="btn btn-outline-secondary btn-sm" id="sidebarToggle"><i class="fas fa-bars"></i></button>
+            <span class="navbar-brand ms-3 fw-bold text-secondary" id="page-title">Dashboard</span>
+            
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <span class="badge bg-secondary" id="backend-status">Connecting...</span>
+                
+                <div class="dropdown">
+                    <a class="nav-link dropdown-toggle text-dark fw-bold" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+                        <i class="fas fa-user-circle text-primary fa-lg me-1"></i> 
+                        <span id="nav-user-name">User</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                        <li>
+                            <a class="dropdown-item" href="#settings">
+                                <i class="fas fa-cog me-2 text-muted"></i> Settings
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="#" onclick="logout()">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid p-4" id="main-content">
+            <!-- Dynamic Content -->
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script src="js/modules/dashboard.js"></script>
+<script src="js/modules/simulator.js"></script>
+<script src="js/modules/walker.js"></script>
+<script src="js/modules/traps.js"></script>
+<script src="js/modules/mibs.js"></script>
+<script src="js/modules/settings.js"></script>
+</body>
+</html>
+
+===== /workspaces/snmp-studio/frontend/src/dashboard.html =====
+<div class="container-fluid">
+    <!-- Stats Row -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">MIBs Loaded</h6>
+                            <h3 class="mb-0" id="stat-mibs">-</h3>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-database fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Traps Available</h6>
+                            <h3 class="mb-0" id="stat-traps">-</h3>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-bell fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Simulator</h6>
+                            <h3 class="mb-0" id="stat-simulator">Offline</h3>
+                        </div>
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-server fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Trap Receiver</h6>
+                            <h3 class="mb-0" id="stat-receiver">Stopped</h3>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-satellite-dish fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <h5 class="mb-3"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#simulator'">
+                <div class="card-body text-center py-4">
+                    <div class="tool-icon bg-success bg-opacity-10 mx-auto">
+                        <i class="fas fa-server fa-2x text-success"></i>
+                    </div>
+                    <h5 class="mt-3 mb-2">SNMP Simulator</h5>
+                    <p class="text-muted small mb-0">Start/stop SNMP agent and configure custom data</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#walker'">
+                <div class="card-body text-center py-4">
+                    <div class="tool-icon bg-primary bg-opacity-10 mx-auto">
+                        <i class="fas fa-walking fa-2x text-primary"></i>
+                    </div>
+                    <h5 class="mt-3 mb-2">Walk & Parse</h5>
+                    <p class="text-muted small mb-0">Execute SNMP walks and parse MIB data</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#traps'">
+                <div class="card-body text-center py-4">
+                    <div class="tool-icon bg-warning bg-opacity-10 mx-auto">
+                        <i class="fas fa-bell fa-2x text-warning"></i>
+                    </div>
+                    <h5 class="mt-3 mb-2">Trap Manager</h5>
+                    <p class="text-muted small mb-0">Send and receive SNMP traps</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#mibs'">
+                <div class="card-body text-center py-4">
+                    <div class="tool-icon bg-info bg-opacity-10 mx-auto">
+                        <i class="fas fa-database fa-2x text-info"></i>
+                    </div>
+                    <h5 class="mt-3 mb-2">MIB Manager</h5>
+                    <p class="text-muted small mb-0">Upload, validate, and browse MIB files</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#settings'">
+                <div class="card-body text-center py-4">
+                    <div class="tool-icon bg-secondary bg-opacity-10 mx-auto">
+                        <i class="fas fa-cog fa-2x text-secondary"></i>
+                    </div>
+                    <h5 class="mt-3 mb-2">Settings</h5>
+                    <p class="text-muted small mb-0">Configure authentication and preferences</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+===== /workspaces/snmp-studio/frontend/src/walker.html =====
+<div class="row h-100">
+    <!-- Config -->
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white py-2">Target</div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <label class="form-label small">Host</label>
+                    <input type="text" class="form-control form-control-sm" id="walk-target" value="127.0.0.1">
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label small">Port</label>
+                        <input type="number" class="form-control form-control-sm" id="walk-port" value="1061">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Community</label>
+                        <input type="text" class="form-control form-control-sm" id="walk-comm" value="public">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">OID</label>
+                    <input type="text" class="form-control form-control-sm" id="walk-oid" value="IF-MIB::ifTable">
+                </div>
+                
+                <hr class="my-2">
+                
+                <!-- Options -->
+                <div class="mb-3">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="walk-parse-toggle" checked onchange="WalkerModule.toggleOptions()">
+                        <label class="form-check-label small">Parse to JSON</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="walk-use-mibs" checked disabled>
+                        <label class="form-check-label small">Resolve OIDs (Use MIBs)</label>
+                    </div>
+                    <div class="form-text small mt-1" id="walk-help-text">
+                        Parsing requires MIB resolution. Disable parsing to toggle MIB usage.
+                    </div>
+                </div>
+
+                <button class="btn btn-primary w-100" onclick="WalkerModule.execute()">
+                    <i class="fas fa-play"></i> Run Walk
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="col-md-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <span>Results</span>
+                <div>
+                    <span class="badge bg-secondary me-2" id="walk-count">0 items</span>
+                    <!-- Copy Button -->
+                    <button class="btn btn-sm btn-outline-dark me-1" onclick="WalkerModule.copyToClipboard()" title="Copy Output">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-dark" onclick="WalkerModule.download('json')" title="Export JSON">
+                        <i class="fas fa-file-code"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-dark" onclick="WalkerModule.download('csv')" title="Export CSV">
+                        <i class="fas fa-file-csv"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <pre id="walk-output" class="m-0 p-3 h-100 border-0 bg-light" style="overflow: auto; max-height: 600px;">No data yet...</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+===== /workspaces/snmp-studio/frontend/src/mibs.html =====
+<div class="row h-100">
+    <!-- LEFT: MIB Library -->
+    <div class="col-lg-5">
+        <!-- Status Card -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-database me-2 text-primary"></i> MIB Library</span>
+                <div>
+                    <button class="btn btn-sm btn-success me-1" onclick="MibsModule.showUploadModal()">
+                        <i class="fas fa-upload"></i> Upload
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="MibsModule.reloadMibs()" title="Reload MIBs">
+                        <i class="fas fa-sync"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-2">
+                <!-- Summary Stats -->
+                <div class="d-flex justify-content-around mb-3 p-2 bg-light rounded">
+                    <div class="text-center">
+                        <div class="h4 mb-0 text-success" id="mib-count-loaded">0</div>
+                        <small class="text-muted">Loaded</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="h4 mb-0 text-danger" id="mib-count-failed">0</div>
+                        <small class="text-muted">Failed</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="h4 mb-0 text-primary" id="mib-count-traps">0</div>
+                        <small class="text-muted">Traps</small>
+                    </div>
+                </div>
+
+                <!-- MIB List -->
+                <div class="border rounded bg-white" style="max-height: 400px; overflow-y: auto;">
+                    <ul class="list-group list-group-flush" id="mib-list">
+                        <li class="list-group-item text-center text-muted small">Loading...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Failed MIBs (if any) -->
+        <div class="card shadow-sm" id="failed-mibs-card" style="display: none;">
+            <div class="card-header bg-danger text-white py-2">
+                <i class="fas fa-exclamation-triangle me-2"></i> Failed MIBs
+            </div>
+            <div class="card-body p-2">
+                <ul class="list-group list-group-flush small" id="failed-mib-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Trap Browser -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <span><i class="fas fa-bell me-2 text-warning"></i> Available Traps</span>
+                <input type="text" class="form-control form-control-sm" id="trap-search" 
+                    placeholder="Search..." style="max-width: 200px;">
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th style="width: 40%;">Name</th>
+                                <th style="width: 20%;" class="text-center">Module</th>
+                                <th style="width: 15%;" class="text-center">Objects</th>
+                                <th style="width: 25%;" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trap-table-body">
+                            <tr>
+                                <td colspan="4" class="text-center text-muted p-3">Loading traps...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-upload me-2"></i> Upload MIB Files</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- File Input -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Select MIB Files</label>
+                    <input type="file" class="form-control" id="mib-upload-input" multiple 
+                           accept=".mib,.txt,.my">
+                    <div class="form-text">Supported formats: .mib, .txt, .my</div>
+                </div>
+
+                <!-- Validation Results -->
+                <div id="upload-validation-results" style="display: none;">
+                    <hr>
+                    <h6 class="fw-bold">Validation Results</h6>
+                    <div id="validation-list"></div>
+                </div>
+
+                <!-- Dependency Warning -->
+                <div class="alert alert-warning" id="dependency-alert" style="display: none;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Missing Dependencies Detected</strong>
+                    <div id="dependency-list" class="mt-2 small"></div>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-warning" onclick="MibsModule.showDependencyHelp()">
+                            <i class="fas fa-question-circle"></i> How to resolve?
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btn-validate" onclick="MibsModule.validateFiles()">
+                    <i class="fas fa-check"></i> Validate
+                </button>
+                <button type="button" class="btn btn-success" id="btn-upload" onclick="MibsModule.uploadFiles()" disabled>
+                    <i class="fas fa-upload"></i> Upload & Reload
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trap Details Modal -->
+<div class="modal fade" id="trapDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="trap-detail-title">Trap Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="trap-detail-body">
+                <!-- Populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="MibsModule.useTrapInSender()">
+                    <i class="fas fa-paper-plane"></i> Use in Trap Sender
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+===== /workspaces/snmp-studio/frontend/src/simulator.html =====
+<div class="row">
+    <!-- LEFT: Status & Config -->
+    <div class="col-md-5">
+        <!-- Status Card -->
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
+                <span><i class="fas fa-microchip"></i> Status</span>
+                <span id="sim-badge" class="badge bg-secondary">Checking...</span>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div id="sim-icon-wrapper" class="me-3 text-secondary">
+                        <i class="fas fa-server fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0" id="sim-state-text">Offline</h5>
+                        <small class="text-muted" id="sim-detail-text">Process stopped</small>
+                    </div>
+                </div>
+                
+                <div class="btn-group w-100">
+                    <button class="btn btn-success" id="btn-start" onclick="SimulatorModule.start()">
+                        <i class="fas fa-play"></i> Start
+                    </button>
+                    <button class="btn btn-danger" id="btn-stop" onclick="SimulatorModule.stop()" disabled>
+                        <i class="fas fa-stop"></i> Stop
+                    </button>
+                    <button class="btn btn-outline-secondary" id="btn-restart" onclick="SimulatorModule.restart()" disabled>
+                        <i class="fas fa-sync"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Config Card -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header py-2">Configuration</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label small">Port</label>
+                        <input type="number" class="form-control form-control-sm" id="sim-config-port" value="1061">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Community</label>
+                        <input type="text" class="form-control form-control-sm" id="sim-config-comm" value="public">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Data Card -->
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <span><i class="fas fa-database me-2 text-info"></i> Custom Data</span>
+                <button class="btn btn-sm btn-success" onclick="SimulatorModule.saveCustomData()">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="p-2 bg-light border-bottom small text-muted">
+                    <i class="fas fa-info-circle"></i> Override OID values (e.g., <code>IF-MIB::ifSpeed.1</code>)
+                </div>
+                <textarea id="custom-data-editor" 
+                          class="form-control border-0 font-monospace" 
+                          style="resize: none; height: 200px; font-size: 0.85rem;"
+                          placeholder='{\n  "IF-MIB::ifSpeed.1": 1000,\n  "IF-MIB::ifDescr.1": "eth0"\n}'></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Activity Log -->
+    <div class="col-md-7">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header py-2 bg-light">Activity Log</div>
+            <div class="card-body p-0">
+                <div class="p-2 font-monospace small bg-white" style="height: 600px; overflow-y: auto;" id="sim-log-area">
+                    <div class="text-muted">Waiting for events...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

@@ -1,136 +1,134 @@
-<div class="container-fluid">
-    <!-- Stats Row -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">MIBs Loaded</h6>
-                            <h3 class="mb-0" id="stat-mibs">-</h3>
-                        </div>
-                        <div class="bg-primary bg-opacity-10 p-3 rounded">
-                            <i class="fas fa-database fa-2x text-primary"></i>
-                        </div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">MIBs Loaded</h6>
+                        <h3 class="mb-0" id="stat-mibs">-</h3>
                     </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Traps Available</h6>
-                            <h3 class="mb-0" id="stat-traps">-</h3>
-                        </div>
-                        <div class="bg-warning bg-opacity-10 p-3 rounded">
-                            <i class="fas fa-bell fa-2x text-warning"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Simulator</h6>
-                            <h3 class="mb-0" id="stat-simulator">Offline</h3>
-                        </div>
-                        <div class="bg-success bg-opacity-10 p-3 rounded">
-                            <i class="fas fa-server fa-2x text-success"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Trap Receiver</h6>
-                            <h3 class="mb-0" id="stat-receiver">Stopped</h3>
-                        </div>
-                        <div class="bg-info bg-opacity-10 p-3 rounded">
-                            <i class="fas fa-satellite-dish fa-2x text-info"></i>
-                        </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-database fa-2x text-primary"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Quick Actions -->
-    <div class="row">
-        <div class="col-12">
-            <h5 class="mb-3"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
-        </div>
-        
-        <div class="col-md-4 mb-3">
-            <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#simulator'">
-                <div class="card-body text-center py-4">
-                    <div class="tool-icon bg-success bg-opacity-10 mx-auto">
-                        <i class="fas fa-server fa-2x text-success"></i>
+    
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Traps Available</h6>
+                        <h3 class="mb-0" id="stat-traps">-</h3>
                     </div>
-                    <h5 class="mt-3 mb-2">SNMP Simulator</h5>
-                    <p class="text-muted small mb-0">Start/stop SNMP agent and configure custom data</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4 mb-3">
-            <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#walker'">
-                <div class="card-body text-center py-4">
-                    <div class="tool-icon bg-primary bg-opacity-10 mx-auto">
-                        <i class="fas fa-walking fa-2x text-primary"></i>
-                    </div>
-                    <h5 class="mt-3 mb-2">Walk & Parse</h5>
-                    <p class="text-muted small mb-0">Execute SNMP walks and parse MIB data</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4 mb-3">
-            <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#traps'">
-                <div class="card-body text-center py-4">
-                    <div class="tool-icon bg-warning bg-opacity-10 mx-auto">
+                    <div class="bg-warning bg-opacity-10 p-3 rounded">
                         <i class="fas fa-bell fa-2x text-warning"></i>
                     </div>
-                    <h5 class="mt-3 mb-2">Trap Manager</h5>
-                    <p class="text-muted small mb-0">Send and receive SNMP traps</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4 mb-3">
-            <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#mibs'">
-                <div class="card-body text-center py-4">
-                    <div class="tool-icon bg-info bg-opacity-10 mx-auto">
-                        <i class="fas fa-database fa-2x text-info"></i>
-                    </div>
-                    <h5 class="mt-3 mb-2">MIB Manager</h5>
-                    <p class="text-muted small mb-0">Upload, validate, and browse MIB files</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4 mb-3">
-            <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#settings'">
-                <div class="card-body text-center py-4">
-                    <div class="tool-icon bg-secondary bg-opacity-10 mx-auto">
-                        <i class="fas fa-cog fa-2x text-secondary"></i>
-                    </div>
-                    <h5 class="mt-3 mb-2">Settings</h5>
-                    <p class="text-muted small mb-0">Configure authentication and preferences</p>
                 </div>
             </div>
         </div>
     </div>
+    
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Simulator</h6>
+                        <h3 class="mb-0" id="stat-simulator">Offline</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-server fa-2x text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Trap Receiver</h6>
+                        <h3 class="mb-0" id="stat-receiver">Stopped</h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-satellite-dish fa-2x text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <h5 class="mb-3"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#simulator'">
+            <div class="card-body text-center py-4">
+                <div class="tool-icon bg-success bg-opacity-10 mx-auto">
+                    <i class="fas fa-server fa-2x text-success"></i>
+                </div>
+                <h5 class="mt-3 mb-2">SNMP Simulator</h5>
+                <p class="text-muted small mb-0">Start/stop SNMP agent and configure custom data</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#walker'">
+            <div class="card-body text-center py-4">
+                <div class="tool-icon bg-primary bg-opacity-10 mx-auto">
+                    <i class="fas fa-walking fa-2x text-primary"></i>
+                </div>
+                <h5 class="mt-3 mb-2">Walk & Parse</h5>
+                <p class="text-muted small mb-0">Execute SNMP walks and parse MIB data</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#traps'">
+            <div class="card-body text-center py-4">
+                <div class="tool-icon bg-warning bg-opacity-10 mx-auto">
+                    <i class="fas fa-bell fa-2x text-warning"></i>
+                </div>
+                <h5 class="mt-3 mb-2">Trap Manager</h5>
+                <p class="text-muted small mb-0">Send and receive SNMP traps</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#mibs'">
+            <div class="card-body text-center py-4">
+                <div class="tool-icon bg-info bg-opacity-10 mx-auto">
+                    <i class="fas fa-database fa-2x text-info"></i>
+                </div>
+                <h5 class="mt-3 mb-2">MIB Manager</h5>
+                <p class="text-muted small mb-0">Upload, validate, and browse MIB files</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card tool-card shadow-sm h-100" onclick="window.location.hash='#settings'">
+            <div class="card-body text-center py-4">
+                <div class="tool-icon bg-secondary bg-opacity-10 mx-auto">
+                    <i class="fas fa-cog fa-2x text-secondary"></i>
+                </div>
+                <h5 class="mt-3 mb-2">Settings</h5>
+                <p class="text-muted small mb-0">Configure authentication and preferences</p>
+            </div>
+        </div>
+    </div>
 </div>

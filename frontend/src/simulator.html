@@ -1,10 +1,11 @@
+
 <div class="row">
     <!-- LEFT: Status & Config -->
-    <div class="col-md-5">
+    <div class="col-md-4">
         <!-- Status Card -->
         <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
-                <span><i class="fas fa-microchip"></i> Status</span>
+            <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <span><i class="fas fa-microchip me-2 text-success"></i> Status</span>
                 <span id="sim-badge" class="badge bg-secondary">Checking...</span>
             </div>
             <div class="card-body">
@@ -34,7 +35,9 @@
 
         <!-- Config Card -->
         <div class="card shadow-sm mb-3">
-            <div class="card-header py-2">Configuration</div>
+            <div class="card-header py-2">
+                <i class="fas fa-cog me-2 text-primary"></i> Configuration
+            </div>
             <div class="card-body">
                 <div class="row g-2">
                     <div class="col-6">
@@ -53,9 +56,14 @@
         <div class="card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center py-2">
                 <span><i class="fas fa-database me-2 text-info"></i> Custom Data</span>
-                <button class="btn btn-sm btn-success" onclick="SimulatorModule.saveCustomData()">
-                    <i class="fas fa-save"></i> Save
-                </button>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary me-1" onclick="SimulatorModule.formatJson()" title="Format JSON">
+                        <i class="fas fa-magic"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="SimulatorModule.saveCustomData()">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="p-2 bg-light border-bottom small text-muted">
@@ -70,9 +78,11 @@
     </div>
 
     <!-- RIGHT: Activity Log -->
-    <div class="col-md-7">
+    <div class="col-md-8">
         <div class="card h-100 shadow-sm">
-            <div class="card-header py-2 bg-light">Activity Log</div>
+            <div class="card-header py-2">
+                <i class="fas fa-list me-2 text-secondary"></i> Activity Log
+            </div>
             <div class="card-body p-0">
                 <div class="p-2 font-monospace small bg-white" style="height: 600px; overflow-y: auto;" id="sim-log-area">
                     <div class="text-muted">Waiting for events...</div>
