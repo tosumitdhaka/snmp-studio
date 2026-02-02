@@ -1,11 +1,12 @@
 const API_BASE = "/api";
-const HTML_CACHE = {}; 
 let currentModule = null; 
 
 window.AppState = {
     simulator: null,
     logs: []
 };
+
+// ==================== Fetch Interceptor (Auth Token Injection) ====================
 
 const originalFetch = window.fetch;
 window.fetch = async function(url, options = {}) {
@@ -27,6 +28,8 @@ window.fetch = async function(url, options = {}) {
 
     return response;
 };
+
+// ==================== App Initialization ====================
 
 document.addEventListener("DOMContentLoaded", () => {
     initAuth();
@@ -56,6 +59,8 @@ async function initAuth() {
         }
     }
 }
+
+// ==================== Login Handler ====================
 
 window.handleLogin = async function(e) {
     e.preventDefault();
@@ -92,6 +97,8 @@ window.handleLogin = async function(e) {
     }
 };
 
+// ==================== Show App After Login ====================
+
 function showApp() {
     const loginScreen = document.getElementById("login-screen");
     const wrapper = document.getElementById("wrapper");
@@ -108,6 +115,8 @@ function showApp() {
     initializeAppLogic();
 }
 
+// ==================== Logout ====================
+
 window.logout = async function(callApi = true) {
     if (callApi) {
         try { await fetch('/api/settings/logout', { method: 'POST' }); } catch(e){}
@@ -116,12 +125,17 @@ window.logout = async function(callApi = true) {
     window.location.reload();
 };
 
+// ==================== Update User UI ====================
+
 function updateUserUI(username) {
     const el = document.getElementById("nav-user-name");
     if(el) el.textContent = username;
 }
 
+// ==================== Initialize App Logic ====================
+
 function initializeAppLogic() {
+    // Sidebar toggle
     const sidebarToggle = document.querySelector('#sidebarToggle');
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', e => {
@@ -130,10 +144,108 @@ function initializeAppLogic() {
         });
     }
 
-    checkBackendHealth();
+    // Load app metadata and check backend health
+    loadAppMetadata();
+    
+    // Check backend health periodically
+    setInterval(checkBackendHealth, 60000);
+
+    // Handle routing
     window.addEventListener('hashchange', handleRouting);
     handleRouting(); 
 }
+
+// ==================== Load App Metadata ====================
+
+async function loadAppMetadata() {
+    const versionEl = document.getElementById("app-version");
+    const badge = document.getElementById("backend-status");
+    
+    try {
+        const res = await fetch(`${API_BASE}/meta`);
+        const data = await res.json();
+        
+        if (badge) {
+            badge.className = "badge bg-success";
+            badge.textContent = "Online";
+        }
+        
+        if (versionEl) {
+            versionEl.textContent = `v${data.version}`;
+            versionEl.title = `${data.name} v${data.version}`;
+        }
+        
+        document.title = data.name;
+        
+        window.AppMetadata = {
+            name: data.name,
+            version: data.version,
+            author: data.author,
+            description: data.description
+        };
+        
+        console.log(`🔱 ${data.name} v${data.version} loaded successfully`);
+        
+    } catch (e) {
+        console.error("Failed to load app metadata:", e);
+        
+        if (badge) {
+            badge.className = "badge bg-danger";
+            badge.textContent = "Offline";
+        }
+        
+        if (versionEl) {
+            versionEl.textContent = "Offline";
+            versionEl.style.color = "#ef4444";
+            versionEl.title = "Backend is offline";
+        }
+    }
+}
+
+// ==================== Check Backend Health ====================
+
+async function checkBackendHealth() {
+    const badge = document.getElementById("backend-status");
+    const versionEl = document.getElementById("app-version");
+    
+    try {
+        const res = await fetch(`${API_BASE}/meta`);
+        const data = await res.json();
+        
+        if (badge) {
+            badge.className = "badge bg-success";
+            badge.textContent = "Online";
+        }
+        
+        if (versionEl && versionEl.textContent !== `v${data.version}`) {
+            versionEl.textContent = `v${data.version}`;
+            versionEl.title = `${data.name} v${data.version}`;
+            // console.log(`🔄 Version updated to v${data.version}`);
+        }
+        
+        if (document.title !== data.name) {
+            document.title = data.name;
+        }
+        
+    } catch (e) {
+        if (badge && badge.classList.contains("bg-success")) {
+            console.error("Backend went offline:", e);
+        }
+        
+        if (badge) {
+            badge.className = "badge bg-danger";
+            badge.textContent = "Offline";
+        }
+        
+        if (versionEl && versionEl.textContent !== "Offline") {
+            versionEl.textContent = "Offline";
+            versionEl.style.color = "#ef4444";
+            versionEl.title = "Backend is offline";
+        }
+    }
+}
+
+// ==================== Routing ====================
 
 async function handleRouting() {
     let moduleName = window.location.hash.substring(1) || 'dashboard';
@@ -150,35 +262,45 @@ async function handleRouting() {
     await loadModule(moduleName);
 }
 
+// ==================== Module Loading (NO CACHE) ====================
+
 async function loadModule(moduleName) {
     const container = document.getElementById("main-content");
     const title = document.getElementById("page-title");
 
     const titles = {
-        'dashboard': 'System Overview',
-        'simulator': 'Simulator Manager',
-        'walker': 'Walk & Parse Studio',
-        'traps': 'Trap Receiver & Sender',
+        'dashboard': 'Trishul SNMP Studio',
+        'simulator': 'SNMP Simulator',
+        'walker': 'Walk & Parse',
+        'traps': 'Trap Manager',
         'mibs': 'MIB Manager',
         'settings': 'Settings'
     };
 
-    title.textContent = titles[moduleName] || 'SNMP Studio';
+    title.textContent = titles[moduleName] || 'Trishul SNMP Studio';
 
-    if (!HTML_CACHE[moduleName]) {
-        try {
-            container.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary"></div></div>';
-            const res = await fetch(`${moduleName}.html`);
-            if (!res.ok) throw new Error("Module not found");
-            HTML_CACHE[moduleName] = await res.text();
-        } catch (e) {
-            container.innerHTML = `<div class="alert alert-danger">Error: ${e.message}</div>`;
-            return;
-        }
+    // Always fetch fresh HTML (no cache)
+    try {
+        container.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary"></div></div>';
+        
+        const res = await fetch(`${moduleName}.html`);
+        
+        if (!res.ok) throw new Error("Module not found");
+        
+        const html = await res.text();
+        container.innerHTML = html;
+        
+    } catch (e) {
+        container.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Error loading module: ${e.message}
+            </div>
+        `;
+        return;
     }
 
-    container.innerHTML = HTML_CACHE[moduleName];
-
+    // Initialize module
     const moduleMap = {
         'dashboard': window.DashboardModule,
         'simulator': window.SimulatorModule,
@@ -193,20 +315,5 @@ async function loadModule(moduleName) {
         if(typeof currentModule.init === 'function') {
             currentModule.init();
         }
-    }
-}
-
-async function checkBackendHealth() {
-    const badge = document.getElementById("backend-status");
-    try {
-        const res = await fetch(`${API_BASE}/meta`);
-        const data = await res.json();
-        badge.className = "badge bg-success";
-        badge.textContent = "Online";
-        
-        document.getElementById("app-version").textContent = `v${data.version}`;
-    } catch (e) {
-        badge.className = "badge bg-danger";
-        badge.textContent = "Offline";
     }
 }

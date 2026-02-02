@@ -1,9 +1,10 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from core.meta import meta
+
 from core.security import validate_auth
 from core.logging import setup_logging
 from api.routers import simulator, walker, settings, traps, mibs
+from core.config import meta
 
 setup_logging()
 
@@ -23,12 +24,17 @@ def get_app_metadata():
     return {
         "name": meta.NAME,
         "version": meta.VERSION,
-        "author": meta.AUTHOR
+        "author": meta.AUTHOR,
+        "description": meta.DESCRIPTION
     }
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "healthy", "service": "snmp-studio-backend"}
+    return {
+        "status": "healthy",
+        "service": meta.NAME,
+        "version": meta.VERSION
+    }
 
 # Include routers
 app.include_router(simulator.router, prefix="/api", dependencies=[Depends(validate_auth)])

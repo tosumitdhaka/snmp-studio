@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+
 class Settings:
     # Base paths
     BASE_DIR = Path(__file__).parent.parent.resolve()
@@ -24,8 +25,10 @@ class Settings:
     LOG_FILE = LOG_DIR / "app.log"
     
     # Application
-    APP_NAME = os.getenv("APP_NAME", "SNMP Studio")
-    APP_VERSION = os.getenv("APP_VERSION", "1.1.4")
+    APP_NAME = os.getenv("APP_NAME", "Trishul SNMP Studio")
+    APP_VERSION = os.getenv("APP_VERSION", "1.1.5")
+    APP_AUTHOR = "Sumit Dhaka"
+    APP_DESCRIPTION = "Network Management & SNMP Utilities"
     
     # Security
     SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "3600"))  # seconds
@@ -53,3 +56,11 @@ class Settings:
             self.TRAPS_FILE.touch()
 
 settings = Settings()
+
+class AppMeta:
+    NAME = Settings.APP_NAME
+    VERSION = Settings.APP_VERSION
+    AUTHOR = Settings.APP_AUTHOR
+    DESCRIPTION = Settings.APP_DESCRIPTION
+
+meta = AppMeta()

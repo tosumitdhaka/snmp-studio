@@ -1,35 +1,41 @@
 version: '3.8'
 
 services:
-  # 1. The Brain (API + Simulator + Walker)
-  snmp-backend:
+  # Backend Service
+  backend:
     build: ./backend
-    container_name: snmp-studio-backend
+    container_name: trishul-snmp-backend
+    env_file:
+      - .env
     ports:
-      - "8000:8000"      # API Access
-      - "${SNMP_PORT:-1061}:${SNMP_PORT:-1061}/udp"  # Simulator UDP Port (configurable)
-      - "${TRAP_PORT:-1162}:${TRAP_PORT:-1162}/udp"  # Trap Receiver Port (configurable)
+      - "8000:8000"
+      - "${SNMP_PORT:-1061}:${SNMP_PORT:-1061}/udp"
+      - "${TRAP_PORT:-1162}:${TRAP_PORT:-1162}/udp"
     volumes:
-      # Mount the data folder for persistence
       - ./backend/data:/app/data
-      # Mount MIBs specifically to where Net-SNMP expects them
       - ./backend/data/mibs:/usr/share/snmp/mibs/custom
     environment:
       - PYTHONUNBUFFERED=1
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Application Metadata
+      - APP_NAME=${APP_NAME:-Trishul SNMP Studio}
+      - APP_VERSION=${APP_VERSION:-1.1.5}
+      - APP_AUTHOR=${APP_AUTHOR:-Your Organization}
+      - APP_DESCRIPTION=${APP_DESCRIPTION:-Network Management & SNMP Monitoring Platform}
+      # SNMP Settings
       - SNMP_PORT=${SNMP_PORT:-1061}
       - SNMP_COMMUNITY=${SNMP_COMMUNITY:-public}
       - TRAP_PORT=${TRAP_PORT:-1162}
-      - APP_NAME=${APP_NAME:-SNMP Studio}
+      # Other Settings
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - SESSION_TIMEOUT=${SESSION_TIMEOUT:-3600}
     restart: always
 
-  # 2. The Face (Web UI)
-  snmp-frontend:
+  # Frontend Service
+  frontend:
     build: ./frontend
-    container_name: snmp-studio-frontend
+    container_name: trishul-snmp-frontend
     ports:
       - "8080:80"
     depends_on:
-      - snmp-backend
+      - backend
     restart: always

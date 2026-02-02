@@ -3,20 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNMP Studio</title>
+    <title>Trishul SNMP Studio</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="img/trishul-icon.svg">
+    <link rel="alternate icon" href="favicon.ico">
+    
+    <!-- Stylesheets -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
 <!-- Login Screen -->
 <div id="login-screen" class="position-fixed top-0 start-0 w-100 h-100 bg-light d-flex flex-column justify-content-center align-items-center" style="z-index: 9999;">
-    <div class="card shadow-lg border-0" style="width: 350px;">
+    <div class="card shadow-lg border-0" style="width: 380px;">
         <div class="card-body p-4 text-center">
-            <div class="mb-4">
-                <i class="fas fa-network-wired fa-3x text-primary"></i>
+            <!-- Trishul Icon -->
+            <div class="mb-3">
+                <img src="img/trishul-icon.svg" alt="Trishul" style="width: 64px; height: 64px;">
             </div>
-            <h4 class="mb-3">SNMP Studio</h4>
+            <h4 class="mb-1 fw-bold" style="color: #1e293b;">Trishul SNMP Studio</h4>
+            <p class="text-muted small mb-4">Network Management & Monitoring</p>
             
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="mb-3 text-start">
@@ -29,7 +38,7 @@
                 </div>
                 <div id="login-error" class="alert alert-danger py-2 small d-none"></div>
                 <button type="submit" class="btn btn-primary w-100" id="login-btn">
-                    Log In
+                    <i class="fas fa-sign-in-alt me-2"></i> Log In
                 </button>
             </form>
         </div>
@@ -41,7 +50,8 @@
     <!-- Sidebar -->
     <div class="bg-dark text-white border-end" id="sidebar-wrapper">
         <div class="sidebar-heading border-bottom bg-dark fw-bold text-truncate">
-            <i class="fa-solid fa-network-wired"></i> <span class="ms-2">SNMP Studio</span>
+            <img src="img/trishul-icon.svg" alt="Trishul" style="width: 28px; height: 28px; vertical-align: middle;">
+            <span class="ms-2">Trishul SNMP</span>
         </div>
         
         <div class="list-group list-group-flush flex-grow-1">
@@ -66,15 +76,20 @@
         </div>
         
         <div class="p-3 text-center text-secondary small border-top border-secondary bg-dark">
-            <span id="app-version">v0.0.0</span>
+            <span id="app-version">Loading...</span>
         </div>
     </div>
 
     <!-- Page Content -->
     <div id="page-content-wrapper" class="w-100">
         <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom px-3">
-            <button class="btn btn-outline-secondary btn-sm" id="sidebarToggle"><i class="fas fa-bars"></i></button>
-            <span class="navbar-brand ms-3 fw-bold text-secondary" id="page-title">Dashboard</span>
+            <button class="btn btn-outline-secondary btn-sm" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <span class="navbar-brand ms-3 fw-bold text-secondary d-flex align-items-center">
+                <img src="img/trishul-icon.svg" alt="Trishul" style="width: 24px; height: 24px; margin-right: 8px;">
+                <span id="page-title">Dashboard</span>
+            </span>
             
             <div class="ms-auto d-flex align-items-center gap-3">
                 <span class="badge bg-secondary" id="backend-status">Connecting...</span>
