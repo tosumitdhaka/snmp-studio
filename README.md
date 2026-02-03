@@ -64,6 +64,7 @@ A modern web-based SNMP toolkit for network engineers and administrators. Manage
 
 ### Installation
 
+#### Option 1: Docker Compose
 ```bash
 # Clone repository
 git clone <repository-url>
@@ -74,6 +75,27 @@ docker-compose up -d
 
 # Access Web UI
 open http://localhost:8080
+```
+
+#### Option 2: Single shot script to run docker containers
+```
+# Set GitHub token (one-time)
+export GHCR_TOKEN="ghp_xxxxxxxxxxxx"
+
+# Deploy
+./install-trishul-snmp-docker.sh up
+
+# Check status
+./install-trishul-snmp-docker.sh status
+
+# View logs
+./install-trishul-snmp-docker.sh logs
+
+# Restart
+./install-trishul-snmp-docker.sh restart
+
+# Stop
+./install-trishul-snmp-docker.sh down
 ```
 
 ### Default Credentials

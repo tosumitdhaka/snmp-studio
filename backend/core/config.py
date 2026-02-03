@@ -26,7 +26,7 @@ class Settings:
     
     # Application
     APP_NAME = os.getenv("APP_NAME", "Trishul SNMP Studio")
-    APP_VERSION = os.getenv("APP_VERSION", "1.1.5")
+    APP_VERSION = os.getenv("APP_VERSION", "1.1.6")
     APP_AUTHOR = "Sumit Dhaka"
     APP_DESCRIPTION = "Network Management & SNMP Utilities"
     
