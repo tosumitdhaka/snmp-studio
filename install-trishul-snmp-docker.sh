@@ -92,8 +92,6 @@ run_containers() {
         --name trishul-snmp-backend \
         --network host \
         -v "$VOLUME_NAME:/app/data" \
-        -e APP_NAME="Trishul SNMP Studio" \
-        -e APP_VERSION="1.1.5" \
         --restart unless-stopped \
         "$BACKEND_IMAGE" \
         uvicorn main:app --host 0.0.0.0 --port "$BACKEND_PORT"
