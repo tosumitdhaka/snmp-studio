@@ -1,6 +1,6 @@
 #!/bin/bash
-# install-trishul-snmp-docker.sh - Deploy Trishul SNMP Studio from GHCR
-# Usage: ./install-trishul-snmp-docker.sh [up|down|restart|pull|logs|status|backup|restore]
+# install-trishul-snmp.sh - Deploy Trishul SNMP from GHCR
+# Usage: ./install-trishul-snmp.sh [up|down|restart|pull|logs|status|backup|restore]
 
 set -e
 
@@ -133,7 +133,7 @@ EOF
         "$FRONTEND_IMAGE"
     
     echo ""
-    echo -e "${GREEN}✅ Trishul SNMP Studio is running!${NC}"
+    echo -e "${GREEN}✅ Trishul SNMP is running!${NC}"
     echo ""
     echo "🌐 Frontend: http://localhost:$FRONTEND_PORT"
     echo "🔧 Backend: http://localhost:$BACKEND_PORT"

@@ -269,7 +269,7 @@ async function loadModule(moduleName) {
     const title = document.getElementById("page-title");
 
     const titles = {
-        'dashboard': 'Trishul SNMP Studio',
+        'dashboard': 'Trishul SNMP',
         'simulator': 'SNMP Simulator',
         'walker': 'Walk & Parse',
         'traps': 'Trap Manager',
@@ -277,7 +277,7 @@ async function loadModule(moduleName) {
         'settings': 'Settings'
     };
 
-    title.textContent = titles[moduleName] || 'Trishul SNMP Studio';
+    title.textContent = titles[moduleName] || 'Trishul SNMP';
 
     // Always fetch fresh HTML (no cache)
     try {

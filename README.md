@@ -1,6 +1,6 @@
-# 🔱 Trishul SNMP Studio
+# 🔱 Trishul SNMP
 
-**Professional Network Management & SNMP Monitoring Platform**
+**Professional SNMP Utilities**
 
 A modern web-based SNMP toolkit for network engineers and administrators. Manage SNMP agents, send/receive traps, walk MIBs, and monitor network devices—all from a clean, intuitive interface.
 
@@ -67,28 +67,28 @@ A modern web-based SNMP toolkit for network engineers and administrators. Manage
 #### Option 1: One shot installation and management
 ```
 # Direct installation
-curl -s  https://raw.githubusercontent.com/tosumitdhaka/trishul-snmp-studio/refs/heads/main/install-trishul-snmp-docker.sh | bash
+curl -s  https://raw.githubusercontent.com/tosumitdhaka/trishul-snmp/refs/heads/main/install-trishul-snmp.sh | bash
 
 # Managing app
 # Download it first
-curl -fsSL https://raw.githubusercontent.com/tosumitdhaka/snmp-studio/main/install-trishul-snmp-docker.sh -o install-trishul.sh
-chmod +x install-trishul.sh
+curl -fsSL https://raw.githubusercontent.com/tosumitdhaka/snmp-studio/main/install-trishul-snmp.sh -o install-trishul-snmp.sh
+chmod +x install-trishul-snmp.sh
 
 # Management commands:
-./install-trishul-snmp-docker.sh up
-./install-trishul-snmp-docker.sh status
-./install-trishul-snmp-docker.sh logs
-./install-trishul-snmp-docker.sh restart
-./install-trishul-snmp-docker.sh down
-./install-trishul-snmp-docker.sh backup
-./install-trishul-snmp-docker.sh restore <backup file path>
+./install-trishul-snmp.sh up
+./install-trishul-snmp.sh status
+./install-trishul-snmp.sh logs
+./install-trishul-snmp.sh restart
+./install-trishul-snmp.sh down
+./install-trishul-snmp.sh backup
+./install-trishul-snmp.sh restore <backup file path>
 ```
 
 #### Option 2: Docker Compose
 ```bash
 # Clone repository
 git clone <repository-url>
-cd trishul-snmp-studio
+cd trishul-snmp
 
 # Start services
 docker-compose up -d
@@ -138,7 +138,7 @@ open http://localhost:8080
 ## 📦 Project Structure
 
 ```
-trishul-snmp-studio/
+trishul-snmp/
 ├── backend/
 │   ├── api/
 │   │   └── routers/          # API endpoints
@@ -191,10 +191,10 @@ trishul-snmp-studio/
 
 ```bash
 # Application Metadata
-APP_NAME=Trishul SNMP Studio
-APP_VERSION=1.1.5
-APP_AUTHOR=Your Organization
-APP_DESCRIPTION=Network Management & SNMP Monitoring Platform
+APP_NAME=Trishul SNMP
+APP_VERSION=1.1.7
+APP_AUTHOR=Sumit Dhaka
+APP_DESCRIPTION=Professional SNMP Utilities
 
 # SNMP Settings
 SNMP_PORT=1061
@@ -540,31 +540,6 @@ python -m http.server 8080
 
 ---
 
-## 📝 Changelog
-
-### v1.1.5 (Current)
-- ✅ Rebranded to Trishul SNMP Studio
-- ✅ Added Trishul icon and branding
-- ✅ Dynamic version loading from backend
-- ✅ Improved error handling and logging
-- ✅ Fixed UI caching issues
-- ✅ Standardized page layouts
-- ✅ Enhanced trap manager UI
-
-### v1.1.0
-- ✅ Added MIB Manager with upload/validation
-- ✅ Trap sender with MIB browser
-- ✅ Trap receiver with real-time display
-- ✅ Walk & Parse with JSON export
-
-### v1.0.0
-- ✅ Initial release
-- ✅ SNMP Simulator
-- ✅ Basic walk functionality
-- ✅ Authentication system
-
----
-
 ## 🤝 Contributing
 
 Contributions welcome! Please:
@@ -595,24 +570,22 @@ Contributions welcome! Please:
 
 ## 📧 Support
 
-- **Issues:** [GitHub Issues](https://github.com/your-org/trishul-snmp-studio/issues)
-- **Email:** support@example.com
-- **Documentation:** [Wiki](https://github.com/your-org/trishul-snmp-studio/wiki)
+- **Email:** tosumitdhaka@gmail.com
+- **Documentation:** [Wiki](https://github.com/tosumitdhaka/trishul-snmp/wiki)
 
 ---
 
 ## 🔗 Links
 
-- **Repository:** [https://github.com/your-org/trishul-snmp-studio](https://github.com/your-org/trishul-snmp-studio)
-- **Docker Hub:** [https://hub.docker.com/r/your-org/trishul-snmp-studio](https://hub.docker.com/r/your-org/trishul-snmp-studio)
-- **Documentation:** [https://docs.example.com](https://docs.example.com)
-
+- **Repository:** [trishul-snmp](https://github.com/tosumitdhaka/trishul-snmp)
+- **Docker Hub:** [trishul-snmp-backend](https://github.com/tosumitdhaka/trishul-snmp/pkgs/container/trishul-snmp-backend)
+- **Issues:** [GitHub Issues](https://github.com/tosumitdhaka/trishul-snmp/issues)
 ---
 
 <div align="center">
 
-**Made with 🔱 by [Your Organization]**
+**Made with 🔱 by Sumit Dhaka**
 
-*Trishul SNMP Studio - Professional Network Management Made Simple*
+*Trishul SNMP - Professional SNMP Utilities*
 
 </div>
