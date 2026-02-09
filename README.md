@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/github/license/tosumitdhaka/trishul-snmp?style=for-the-badge)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/tosumitdhaka/trishul-snmp-backend?style=for-the-badge)](https://github.com/tosumitdhaka/trishul-snmp/pkgs/container/trishul-snmp-backend)
 
-A web-based SNMP toolkit for network engineers and administrators. Simulate SNMP agents, send/receive traps, walk devices with MIB resolution, and manage MIB files—all from a clean, intuitive interface.
+A web-based SNMP toolkit for network engineers and administrators. Simulate SNMP agents, send/receive traps, walk devices with MIB resolution, browse MIB trees, and manage MIB files—all from a clean, intuitive interface.
 
 **Replace 5+ SNMP tools with one modern platform**
 
@@ -19,7 +19,8 @@ A web-based SNMP toolkit for network engineers and administrators. Simulate SNMP
 - 🖥️ **SNMP Simulator** - Run configurable SNMP agent with custom OID values
 - 🚶 **Walk & Parse** - Execute SNMP walks with MIB resolution, export to JSON/CSV
 - 📡 **Trap Manager** - Send/receive SNMP traps with real-time monitoring
-- 📚 **MIB Manager** - Upload, validate MIBs, browse traps, auto-resolve OIDs with dependency detection
+- 📚 **MIB Manager** - Upload, validate MIBs, browse trap library, auto-resolve OIDs with dependency detection
+- 🌳 **MIB Browser** - Interactive tree explorer with hierarchical OID navigation, search, and filtering
 - 🔐 **Secure** - Session-based authentication with credential management
 - 🐳 **Containerized** - One-command Docker deployment with host network support
 - 🌐 **Modern UI** - Clean, responsive interface built with Bootstrap 5
@@ -32,7 +33,7 @@ A web-based SNMP toolkit for network engineers and administrators. Simulate SNMP
 
 ✅ **Net-SNMP CLI tools** → Web UI with no command memorization  
 ✅ **snmpsim** → Custom OID simulator with web interface  
-✅ **iReasoning MIB Browser ($500)** → Free MIB browser and validator  
+✅ **iReasoning MIB Browser ($500)** → Free MIB browser with tree navigation  
 ✅ **snmptrapd** → Real-time trap receiver with web display  
 ✅ **Custom scripts** → Built-in JSON/CSV export functionality  
 ✅ **Multiple scattered tools** → One unified platform
@@ -109,6 +110,55 @@ BACKEND_PORT=9000 FRONTEND_PORT=3000 ./install-trishul-snmp.sh up
 
 ---
 
+## 🧩 Component Overview
+
+### 🖥️ **SNMP Simulator**
+Run a configurable SNMP agent on UDP port 1061 with custom OID values. Perfect for testing SNMP clients without real hardware.
+- **Custom OIDs** - Define any OID with custom values and types
+- **SNMPv1/v2c** - Support for community-based authentication
+- **Persistent data** - OID values survive restarts
+- **Web control** - Start/stop agent from dashboard
+
+### 🚶 **Walk & Parse**
+Execute SNMP walks against any device with automatic MIB resolution and data export.
+- **MIB resolution** - Converts numeric OIDs to human-readable names
+- **Bulk operations** - Walk entire MIB trees efficiently
+- **Export formats** - JSON and CSV export for analysis
+- **History** - View previous walk results
+
+### 📡 **Trap Manager**
+Send and receive SNMP traps with real-time monitoring and MIB-based trap browsing.
+- **Trap sender** - Send v1/v2c traps with custom varbinds
+- **Trap receiver** - Real-time trap display on UDP port 1162
+- **Trap library** - Browse 24+ available traps from loaded MIBs
+- **Auto-populate** - Select trap from library to auto-fill varbinds
+
+### 🌳 **MIB Browser**
+Interactive tree explorer for navigating OID hierarchies and understanding MIB structures.
+- **Dual views** - Browse by module or standard OID hierarchy
+- **Real-time search** - Find OIDs by name, numeric OID, or description
+- **Smart filtering** - Filter by module and type (scalars, tables, notifications)
+- **Tree navigation** - Expandable hierarchy with configurable depth (1-5 levels)
+- **Details panel** - View full metadata, descriptions, and varbinds
+- **Integration** - Jump to Walker or Trap Sender with pre-filled data
+- **State persistence** - Remembers your position across page switches
+
+### 📚 **MIB Manager**
+Upload, validate, and manage MIB files with automatic dependency resolution.
+- **Upload MIBs** - Drag-and-drop or file selection
+- **Validation** - Automatic syntax checking and dependency detection
+- **Trap enumeration** - Lists all notification types per MIB
+- **Statistics** - View object counts, imports, and trap counts
+- **Delete/Reload** - Manage MIB lifecycle with hot-reload
+
+### 🔐 **Settings**
+Manage authentication and system preferences.
+- **Credentials** - Change admin password
+- **Session management** - Secure token-based authentication
+- **System info** - View version and configuration
+
+---
+
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -174,11 +224,11 @@ docker-compose build
 
 ## 👥 Best For
 
-- 🔧 **Network engineers** testing devices
+- 🔧 **Network engineers** testing devices and exploring MIB structures
 - 🚀 **DevOps teams** testing SNMP integrations
-- 📚 **Students** learning SNMP protocols
-- ✅ **QA teams** validating implementations
-- 👥 **Small teams** needing trap monitoring
+- 📚 **Students** learning SNMP protocols and MIB hierarchies
+- ✅ **QA teams** validating SNMP implementations
+- 👥 **Small teams** needing trap monitoring and MIB browsing
 - 🧪 **Developers** building SNMP-enabled applications
 
 ---
@@ -267,7 +317,19 @@ Thank you to all our supporters! Your contributions help maintain and improve Tr
 
 ## 📝 Changelog
 
-### v1.1.7 (Current)
+### v1.2.0 (Current) - MIB Browser Release 🌳
+- ✨ **NEW: MIB Browser** - Interactive tree explorer with dual view modes
+- ✨ **Tree Navigation** - Expandable OID hierarchy with configurable depth (1-5 levels)
+- ✨ **Smart Search** - Real-time search by name, OID, or description
+- ✨ **Advanced Filtering** - Filter by module and object type (scalars, tables, notifications)
+- ✨ **Detailed Panel** - Compact metadata display with breadcrumb navigation
+- ✨ **Seamless Integration** - Jump to Walker/Trap Sender with pre-filled data
+- ✨ **Trap Library** - Enhanced trap manager
+- 🐛 **Fixed** - MIB delete function error handling
+- 🐛 **Fixed** - Trap count consistency across dashboard, manager, and browser
+- 🎨 **Dashboard** - Added MIB Browser card
+
+### v1.1.7
 - ✅ Rebranded to Trishul-SNMP
 - ✅ Improved documentation and contributing guidelines
 
@@ -310,7 +372,7 @@ Thank you to all our supporters! Your contributions help maintain and improve Tr
 
 ## 🏷️ Keywords
 
-`snmp` `snmp-simulator` `snmp-trap` `mib-browser` `network-management` `network-monitoring` `snmpwalk` `snmptrap` `docker` `fastapi` `python` `devops` `sysadmin` `netops` `open-source` `self-hosted` `monitoring` `observability` `infrastructure` `network-tools`
+`snmp` `snmp-simulator` `snmp-trap` `mib-browser` `mib-tree` `oid-explorer` `network-management` `network-monitoring` `snmpwalk` `snmptrap` `docker` `fastapi` `python` `devops` `sysadmin` `netops` `open-source` `self-hosted` `monitoring` `observability` `infrastructure` `network-tools`
 
 ---
 
@@ -333,6 +395,8 @@ Thank you to all our supporters! Your contributions help maintain and improve Tr
 | **Send Traps** | ✅ CLI | ✅ GUI | ✅ Web + MIB Browse |
 | **Receive Traps** | ✅ CLI | ❌ | ✅ Web + Real-time |
 | **MIB Manager** | ✅ CLI | ✅ GUI | ✅ Web + Validate |
+| **MIB Browser** | ❌ | ✅ GUI | ✅ Web + Tree Nav |
+| **OID Search** | ❌ | ✅ | ✅ Real-time |
 | **Export JSON/CSV** | ❌ | ✅ | ✅ |
 | **Web-Based** | ❌ | ❌ | ✅ |
 | **Docker Deploy** | ❌ | ❌ | ✅ |
@@ -344,6 +408,7 @@ Thank you to all our supporters! Your contributions help maintain and improve Tr
 ## 🎓 Learning Resources
 
 - 📖 [SNMP Basics Tutorial](https://github.com/tosumitdhaka/trishul-snmp/wiki/SNMP-Basics) *(coming soon)*
+- 📖 [MIB Browser Guide](https://github.com/tosumitdhaka/trishul-snmp/wiki/MIB-Browser-Guide) *(coming soon)*
 - 🎥 [Video Tutorials](https://www.youtube.com/@tosumitdhaka) *(coming soon)*
 - 📝 [Blog Posts](https://dev.to/tosumitdhaka) *(coming soon)*
 - 💬 [Community Discord](https://discord.gg/tosumitdhaka) *(coming soon)*
@@ -364,7 +429,7 @@ MIT License - See [LICENSE](LICENSE) file for details.
 - SNMP implementation by [pysnmp](https://github.com/etingof/pysnmp)
 - MIB parsing by [pysmi](https://github.com/etingof/pysmi)
 - UI powered by [Bootstrap 5](https://getbootstrap.com/)
-- Icons by [Bootstrap Icons](https://icons.getbootstrap.com/)
+- Icons by [Font Awesome](https://fontawesome.com/) & [Bootstrap Icons](https://icons.getbootstrap.com/)
 
 ---
 
@@ -403,18 +468,33 @@ Deploy on your own infrastructure using the one-command installer or Docker Comp
 
 ## 🎯 Roadmap
 
-- [ ] Full MIB tree browser
-- [ ] View OID descriptions and syntax
-- [ ] Search OIDs across MIBs
-- [ ] SNMPv3 authentication support
-- [ ] Scheduled SNMP walks
-- [ ] Email/Slack/Webhook notifications
-- [ ] Custom dashboard widgets
-- [ ] API rate limiting and keys
-- [ ] Bulk device management
-- [ ] Historical data retention
-- [ ] Advanced trap filtering
-- [ ] Mobile-responsive improvements
+### ✅ Completed (v1.2.0)
+- [x] Full MIB tree browser with dual view modes
+- [x] Interactive OID navigation with expandable tree
+- [x] Search OIDs across MIBs with real-time results
+- [x] View OID descriptions, syntax, and metadata
+- [x] Filter by module and object type
+- [x] Seamless integration with Walker and Trap Sender
+- [x] State persistence across page switches
+- [x] Configurable expansion depth (1-5 levels)
+
+### 🚧 In Progress
+- [ ] SNMPv3 authentication support (MD5, SHA, AES)
+- [ ] Scheduled SNMP walks with cron-like syntax
+- [ ] Email/Slack/Webhook notifications for traps
+
+### 📋 Planned
+- [ ] Custom dashboard widgets with drag-and-drop
+- [ ] API rate limiting and authentication keys
+- [ ] Bulk device management (import/export CSV)
+- [ ] Historical data retention with time-series graphs
+- [ ] Advanced trap filtering with regex support
+- [ ] Mobile-responsive improvements for tablets
+- [ ] Dark mode theme
+- [ ] Multi-language support (i18n)
+- [ ] SNMP SET operations in Walker
+- [ ] MIB compiler for custom MIBs
+- [ ] Export MIB tree to PDF/PNG
 
 See [Issues](https://github.com/tosumitdhaka/trishul-snmp/issues) for detailed roadmap and vote on features!
 

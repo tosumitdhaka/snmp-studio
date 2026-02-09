@@ -10,8 +10,60 @@ window.TrapsModule = {
         this.pollInterval = setInterval(() => { this.checkStatus(); this.loadTraps(); }, 3000);
         
         this.loadTrapList();
-        this.loadSelectedTrap();
+        
+        // Check if trap data was passed from browser
+        const browserTrapData = sessionStorage.getItem('selectedTrap');
+        const browserTrapOid = sessionStorage.getItem('trapOid');
+        
+        if (browserTrapData) {
+            try {
+                const trap = JSON.parse(browserTrapData);
+                sessionStorage.removeItem('selectedTrap');
+                
+                // Set trap OID
+                document.getElementById('ts-oid').value = trap.full_name || trap.oid;
+                
+                // Clear existing varbinds
+                document.getElementById('vb-container').innerHTML = 
+                    '<div class="text-center text-muted small py-2" id="vb-empty" style="display:none;"></div>';
+                
+                // Add sysUpTime
+                this.addVarbind("SNMPv2-MIB::sysUpTime.0", "TimeTicks", "12345");
+                
+                // Add trap objects as varbinds
+                if (trap.objects && trap.objects.length > 0) {
+                    trap.objects.forEach(obj => {
+                        const type = this.guessVarBindType(obj.name);
+                        this.addVarbind(obj.full_name, type, "");
+                    });
+                }
+                
+                this.showNotification(`Trap loaded from browser: ${trap.name}`, 'success');
+            } catch (e) {
+                console.error('Failed to load trap from browser:', e);
+            }
+        } else if (browserTrapOid) {
+            document.getElementById('ts-oid').value = browserTrapOid;
+            sessionStorage.removeItem('trapOid');
+            
+            // Auto-populate with sysUpTime
+            this.addVarbind("SNMPv2-MIB::sysUpTime.0", "TimeTicks", "12345");
+            
+            this.showNotification(`Trap OID loaded from browser: ${browserTrapOid}`, 'info');
+        } else {
+            this.loadSelectedTrap();
+        }
     },
+
+    browseTraps: function() {
+        const currentOid = document.getElementById("ts-oid").value.trim();
+        if (currentOid) {
+            sessionStorage.setItem('browserSearchOid', currentOid);
+        }
+        sessionStorage.setItem('browserFilterType', 'NotificationType');
+        window.location.hash = '#browser';
+    },
+
 
     destroy: function() {
         if (this.pollInterval) clearInterval(this.pollInterval);

@@ -320,3 +320,234 @@ table {
 .mib-trap-table .btn-group {
     display: inline-flex;
 }
+
+/* ==================== MIB Browser Styles ==================== */
+
+/* Purple color for MIB Browser (matches your color scheme) */
+.bg-purple {
+    background-color: #8b5cf6 !important;
+}
+
+.text-purple {
+    color: #8b5cf6 !important;
+}
+
+/* For tool-icon with purple */
+.tool-icon.bg-purple {
+    background-color: rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Tree Node Styles */
+.tree-node {
+    position: relative;
+    user-select: none;
+}
+
+.tree-node-content {
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    border-radius: 4px;
+    margin: 1px 0;
+    padding: 0.5rem 0.75rem;
+}
+
+.tree-node-content:hover {
+    background-color: #f1f5f9;
+}
+
+.tree-node-content.bg-primary {
+    background-color: #3b82f6 !important;
+    color: white !important;
+}
+
+.tree-node-content.bg-primary:hover {
+    background-color: #2563eb !important;
+}
+
+.tree-node-content.bg-primary code,
+.tree-node-content.bg-primary .badge {
+    color: #e0e7ff !important;
+    background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.tree-node-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.tree-expand-icon {
+    cursor: pointer;
+    transition: transform 0.2s;
+    color: #64748b;
+}
+
+.tree-expand-icon:hover {
+    color: #3b82f6;
+}
+
+.tree-children {
+    border-left: 1px dashed #cbd5e0;
+    margin-left: 10px;
+}
+
+.tree-module {
+    margin-bottom: 8px;
+}
+
+/* Search Result Styles */
+.search-result-item {
+    transition: background-color 0.2s;
+    border-left: 3px solid transparent;
+    padding: 0.5rem 0.75rem;
+}
+
+.search-result-item:hover {
+    background-color: #f8fafc !important;
+    border-left-color: #3b82f6;
+}
+
+.search-result-item.bg-primary {
+    background-color: #3b82f6 !important;
+    color: white !important;
+    border-left-color: #1e40af;
+}
+
+.search-result-item.bg-primary code,
+.search-result-item.bg-primary .badge {
+    color: #e0e7ff !important;
+    background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Details Panel */
+#browser-details-panel {
+    font-size: 0.9rem;
+}
+
+#browser-details-panel code {
+    background-color: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.85rem;
+}
+
+#browser-details-panel table td {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    background-color: #f8fafc;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+.breadcrumb-item {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.breadcrumb-item a {
+    text-decoration: none;
+    color: #3b82f6;
+}
+
+.breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+/* Scrollbar Styling */
+#browser-tree-container::-webkit-scrollbar,
+#browser-details-panel::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+#browser-tree-container::-webkit-scrollbar-track,
+#browser-details-panel::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+#browser-tree-container::-webkit-scrollbar-thumb,
+#browser-details-panel::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+}
+
+#browser-tree-container::-webkit-scrollbar-thumb:hover,
+#browser-details-panel::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Search input enhancements */
+#browser-search-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+}
+
+/* Filter section */
+.form-label.small {
+    margin-bottom: 0.25rem;
+    color: #64748b;
+}
+
+/* ==================== Enhanced Tree Controls ==================== */
+
+/* Make the controls group seamless */
+#tree-controls {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 4px;
+}
+
+/* Level selector styling */
+#expand-depth-select {
+    border-right: none;
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    cursor: pointer;
+}
+
+#expand-depth-select:focus {
+    box-shadow: none;
+    border-color: #198754;
+    background-color: #fff;
+}
+
+/* Expand button styling */
+#btn-expand {
+    border-left: 1px solid #dee2e6;
+    font-weight: 500;
+    min-width: 90px;
+}
+
+#btn-expand:hover {
+    background-color: #198754;
+    color: white;
+    border-color: #198754;
+}
+
+#btn-expand:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Collapse button styling */
+#tree-controls .btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Smooth transitions */
+#tree-controls button,
+#tree-controls select {
+    transition: all 0.2s ease;
+}

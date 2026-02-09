@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from core.security import validate_auth
 from core.logging import setup_logging
-from api.routers import simulator, walker, settings, traps, mibs
+from api.routers import simulator, walker, settings, traps, mibs, browser
 from core.config import meta
 
 setup_logging()
@@ -40,6 +40,7 @@ def health_check():
 app.include_router(simulator.router, prefix="/api", dependencies=[Depends(validate_auth)])
 app.include_router(walker.router, prefix="/api", dependencies=[Depends(validate_auth)])
 app.include_router(traps.router, prefix="/api", dependencies=[Depends(validate_auth)])
+app.include_router(browser.router, prefix="/api", dependencies=[Depends(validate_auth)]) 
 app.include_router(mibs.router, prefix="/api", dependencies=[Depends(validate_auth)])
 app.include_router(settings.router, prefix="/api")
 

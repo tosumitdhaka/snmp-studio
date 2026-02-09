@@ -273,6 +273,7 @@ async function loadModule(moduleName) {
         'simulator': 'SNMP Simulator',
         'walker': 'Walk & Parse',
         'traps': 'Trap Manager',
+        'browser': 'MIB Browser',
         'mibs': 'MIB Manager',
         'settings': 'Settings'
     };
@@ -306,6 +307,7 @@ async function loadModule(moduleName) {
         'simulator': window.SimulatorModule,
         'walker': window.WalkerModule,
         'traps': window.TrapsModule,
+        'browser': window.BrowserModule,
         'mibs': window.MibsModule,
         'settings': window.SettingsModule
     };

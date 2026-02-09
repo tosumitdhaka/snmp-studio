@@ -23,7 +23,12 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label small">OID</label>
-                    <input type="text" class="form-control form-control-sm" id="walk-oid" value="IF-MIB::ifTable">
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" id="walk-oid" value="IF-MIB::ifTable">
+                        <button class="btn btn-outline-secondary" onclick="WalkerModule.browseOid()" title="Browse MIBs">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <hr class="my-2">

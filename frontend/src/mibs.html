@@ -55,11 +55,20 @@
     <div class="col-md-8">
         <div class="card shadow-sm h-100">
             <div class="card-header d-flex justify-content-between align-items-center py-2">
-                <span><i class="fas fa-bell me-2 text-warning"></i> Available Traps</span>
+                <span>
+                    <i class="fas fa-bell me-2 text-warning"></i> Trap Library
+                    <span class="badge bg-secondary ms-2" id="trap-total-count">0</span>
+                </span>
                 <input type="text" class="form-control form-control-sm" id="trap-search" 
-                       placeholder="Search..." style="max-width: 200px;">
+                    placeholder="Search..." style="max-width: 200px;">
             </div>
             <div class="card-body p-0">
+                <div class="alert alert-info m-2 py-2 small" role="alert">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Quick Access:</strong> All available traps in one place. 
+                    Use <a href="#browser" class="alert-link">MIB Browser</a> to explore trap hierarchy.
+                    <span class="badge bg-secondary">System</span> traps are built-in.
+                </div>
                 <div class="table-responsive" style="max-height: 600px; overflow-y: auto; overflow-x: hidden;">
                     <table class="table table-sm table-hover mb-0 mib-trap-table" style="font-size: 0.85rem;">
                         <thead class="table-light sticky-top">

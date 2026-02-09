@@ -13,9 +13,16 @@ window.WalkerModule = {
 
     init: function() { 
         this.toggleOptions();
-        this.restoreFormState(); // Restore form inputs
+        this.restoreFormState();
         
-        // Restore last result if available
+        // NEW: Check if OID was passed from browser
+        const browserOid = sessionStorage.getItem('walkerOid');
+        if (browserOid) {
+            document.getElementById("walk-oid").value = browserOid;
+            sessionStorage.removeItem('walkerOid');
+            this.showNotification(`OID loaded from browser: ${browserOid}`, 'info');
+        }
+        
         if (this.lastData) {
             this.restoreLastResult();
         }
@@ -44,6 +51,30 @@ window.WalkerModule = {
             use_mibs: document.getElementById("walk-use-mibs").checked
         };
     },
+
+    browseOid: function() {
+        const currentOid = document.getElementById("walk-oid").value.trim();
+        if (currentOid) {
+            sessionStorage.setItem('browserSearchOid', currentOid);
+        }
+        window.location.hash = '#browser';
+    },
+
+    showNotification: function(message, type = 'info') {
+        const banner = document.createElement('div');
+        banner.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        banner.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px;';
+        banner.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(banner);
+        
+        setTimeout(() => {
+            banner.remove();
+        }, 3000);
+    },
+
 
     toggleOptions: function() {
         const parseEl = document.getElementById("walk-parse-toggle");

@@ -1,18 +1,18 @@
 window.DashboardModule = {
     intervalId: null,
-
+    
     init: function() {
         this.loadStats();
-        this.intervalId = setInterval(() => this.loadStats(), 5000);
+        this.intervalId = setInterval(() => this.loadStats(), 10000);
     },
-
+    
     destroy: function() {
         if (this.intervalId) {
             clearInterval(this.intervalId);
             this.intervalId = null;
         }
     },
-
+    
     loadStats: async function() {
         try {
             // MIB Stats
@@ -20,9 +20,9 @@ window.DashboardModule = {
             const mibData = await mibRes.json();
             document.getElementById('stat-mibs').textContent = mibData.loaded;
             
-            const trapRes = await fetch('/api/mibs/traps');
-            const trapData = await trapRes.json();
-            document.getElementById('stat-traps').textContent = trapData.traps.length;
+            // Trap Stats - Count only from loaded MIBs
+            const loadedTraps = mibData.mibs.reduce((sum, mib) => sum + mib.traps, 0);
+            document.getElementById('stat-traps').textContent = loadedTraps;
             
             // Simulator Status
             const simRes = await fetch('/api/simulator/status');

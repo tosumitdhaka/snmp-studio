@@ -22,17 +22,18 @@ window.MibsModule = {
             const res = await fetch('/api/mibs/status');
             const data = await res.json();
             
-            this.currentStatus = data; // Store current status
-
+            // Store status for use in renderTraps
+            this.currentStatus = data;
+            
             document.getElementById('mib-count-loaded').textContent = data.loaded;
             document.getElementById('mib-count-failed').textContent = data.failed;
-
-            const totalTraps = data.mibs.reduce((sum, mib) => sum + mib.traps, 0);
-            document.getElementById('mib-count-traps').textContent = totalTraps;
-
+            
+            // Count traps from loaded MIBs only
+            const loadedTraps = data.mibs.reduce((sum, mib) => sum + mib.traps, 0);
+            document.getElementById('mib-count-traps').textContent = loadedTraps;
+            
             this.renderMibList(data.mibs);
-
-            // Show/hide failed MIBs card based on actual errors
+            
             const failedCard = document.getElementById('failed-mibs-card');
             if (data.errors.length > 0) {
                 this.renderFailedMibs(data.errors);
@@ -108,9 +109,18 @@ window.MibsModule = {
         try {
             const res = await fetch('/api/mibs/traps');
             const data = await res.json();
-
-            this.allTraps = data.traps;
-            this.renderTraps(data.traps);
+            
+            this.allTraps = data.traps || [];
+            
+            // Update total count badge
+            const totalBadge = document.getElementById('trap-total-count');
+            if (totalBadge) {
+                totalBadge.textContent = this.allTraps.length;
+            }
+            
+            // console.log(`Loaded ${this.allTraps.length} traps from backend`);
+            
+            this.renderTraps(this.allTraps);
         } catch (e) {
             console.error('Failed to load traps', e);
         }
@@ -118,18 +128,40 @@ window.MibsModule = {
 
     renderTraps: function(traps) {
         const tbody = document.getElementById('trap-table-body');
-    
+
         if (traps.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted p-3">No traps found</td></tr>';
             return;
         }
-    
-        tbody.innerHTML = traps.map(trap => `
-            <tr>
+        
+        // console.log(`Rendering ${traps.length} traps`);
+        
+        // Get list of loaded MIB modules from currentStatus
+        const loadedModules = new Set();
+        if (this.currentStatus && this.currentStatus.mibs) {
+            this.currentStatus.mibs.forEach(mib => {
+                loadedModules.add(mib.name);
+            });
+        }
+        
+        console.log('Loaded modules:', Array.from(loadedModules));
+        
+        // Known system MIBs (only mark as system if NOT in loaded modules)
+        const knownSystemMibs = ['SNMPv2-MIB', 'SNMPv2-SMI', 'RMON-MIB', 'SNMP-FRAMEWORK-MIB'];
+
+        tbody.innerHTML = traps.map(trap => {
+            // Only mark as system if it's a known system MIB AND not explicitly loaded
+            const isSystemMib = knownSystemMibs.includes(trap.module) && !loadedModules.has(trap.module);
+            
+            // console.log(`${trap.module}::${trap.name} - System: ${isSystemMib}, Loaded: ${loadedModules.has(trap.module)}`);
+            
+            return `
+            <tr ${isSystemMib ? 'class="table-secondary"' : ''}>
                 <td title="${trap.name}">
                     <div class="d-flex align-items-center">
-                        <i class="fas fa-bell text-warning me-2"></i>
+                        <i class="fas fa-bell ${isSystemMib ? 'text-secondary' : 'text-warning'} me-2"></i>
                         <strong class="text-truncate">${trap.name}</strong>
+                        ${isSystemMib ? '<span class="badge bg-secondary ms-2" style="font-size: 0.6rem;">System</span>' : ''}
                     </div>
                 </td>
                 <td title="${trap.oid}">
@@ -138,7 +170,7 @@ window.MibsModule = {
                     </code>
                 </td>
                 <td class="text-center">
-                    <span class="badge bg-secondary" style="font-size: 0.7rem;">${trap.module}</span>
+                    <span class="badge ${isSystemMib ? 'bg-secondary' : 'bg-primary'}" style="font-size: 0.7rem;">${trap.module}</span>
                 </td>
                 <td class="text-center">
                     <span class="badge bg-info" style="font-size: 0.7rem;">${trap.objects.length}</span>
@@ -158,10 +190,11 @@ window.MibsModule = {
                     </div>
                 </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
     },
 
-    // NEW: Send trap directly without modal
+    // Send trap directly without modal
     useTrapDirectly: function(trap) {
         sessionStorage.setItem('selectedTrap', JSON.stringify(trap));
         window.location.hash = '#traps';
@@ -437,28 +470,40 @@ window.MibsModule = {
 
 
     reloadMibs: async function() {
-        const btn = event.target;
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        btn.disabled = true;
-
+        // Remove event parameter since it's called programmatically too
+        const reloadBtn = document.querySelector('button[onclick*="reloadMibs"]');
+        const originalHtml = reloadBtn ? reloadBtn.innerHTML : '';
+        
+        if (reloadBtn) {
+            reloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            reloadBtn.disabled = true;
+        }
+        
         try {
             const res = await fetch('/api/mibs/reload', { method: 'POST' });
+            
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            
             const data = await res.json();
-
+            
+            // Reload status and traps
             await this.loadStatus();
             await this.loadTraps();
-
+            
             // Show success notification
             this.showNotification(`Reloaded: ${data.loaded} loaded, ${data.failed} failed`, 'success');
             
-            console.log('MIBs reloaded:', data);
+            // console.log('MIBs reloaded:', data);
         } catch (e) {
             console.error('Reload failed', e);
             this.showNotification('Reload failed: ' + e.message, 'error');
         } finally {
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
+            if (reloadBtn) {
+                reloadBtn.innerHTML = originalHtml;
+                reloadBtn.disabled = false;
+            }
         }
     },
 
@@ -478,13 +523,29 @@ window.MibsModule = {
     },
 	
     deleteMib: async function(filename) {
-        if (!confirm(`Delete ${filename}?`)) return;
-
+        if (!confirm(`Delete ${filename}?\n\nThis will remove the MIB file and reload all MIBs.`)) {
+            return;
+        }
+        
         try {
-            await fetch(`/api/mibs/${filename}`, { method: 'DELETE' });
+            const res = await fetch(`/api/mibs/${filename}`, { 
+                method: 'DELETE'
+            });
+            
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.detail || 'Delete failed');
+            }
+            
+            // Show success notification
+            this.showNotification(`Deleted ${filename}`, 'success');
+            
+            // Reload MIBs to refresh the list
             await this.reloadMibs();
+            
         } catch (e) {
-            alert('Delete failed: ' + e.message);
+            console.error('Delete failed:', e);
+            alert(`Delete failed: ${e.message}`);
         }
     },
 

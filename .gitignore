@@ -1,3 +1,4 @@
 backend/data*
 .venv*
 .vscode*
+*.tmp*
