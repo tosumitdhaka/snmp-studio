@@ -484,10 +484,9 @@ Deploy on your own infrastructure using the one-command installer or Docker Comp
 - [ ] Email/Slack/Webhook notifications for traps
 
 ### 📋 Planned
-- [ ] Custom dashboard widgets with drag-and-drop
 - [ ] API rate limiting and authentication keys
 - [ ] Bulk device management (import/export CSV)
-- [ ] Historical data retention with time-series graphs
+- [ ] Enhanced file exports
 - [ ] Advanced trap filtering with regex support
 - [ ] Mobile-responsive improvements for tablets
 - [ ] Dark mode theme
@@ -500,11 +499,6 @@ See [Issues](https://github.com/tosumitdhaka/trishul-snmp/issues) for detailed r
 
 ---
 
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=tosumitdhaka/trishul-snmp&type=Date)](https://star-history.com/#tosumitdhaka/trishul-snmp&Date)
-
----
 
 <div align="center">
 
