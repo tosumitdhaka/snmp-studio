@@ -640,7 +640,21 @@ MIT License - See [LICENSE](LICENSE) file for details.
 
 ## 📰 Featured Article
 
-- 📝 **Dev.to:** [Building Trishul-SNMP: A Modern Web-Based SNMP Toolkit to Replace $500 Commercial Tools]((https://dev.to/tosumitdhaka/building-trishul-snmp-a-modern-web-based-snmp-toolkit-to-replace-500-commercial-tools-3d53))
+[![Dev.to Article](https://img.shields.io/badge/Dev.to-Featured%20Article-0A0A0A?style=for-the-badge&logo=dev.to)](https://dev.to/tosumitdhaka/building-trishul-snmp-a-modern-web-based-snmp-toolkit-to-replace-500-commercial-tools-3d53)
+
+### 📝 [Building Trishul-SNMP: A Modern Web-Based SNMP Toolkit](https://dev.to/tosumitdhaka/building-trishul-snmp-a-modern-web-based-snmp-toolkit-to-replace-500-commercial-tools-3d53)
+
+**A technical deep dive into building a free, open-source alternative to $500 commercial tools.**
+
+Read about:
+- 🏗️ **Architecture decisions** - Why FastAPI, pysnmp, and Docker host network mode
+- 🔧 **Technical challenges** - MIB parsing, state persistence, performance optimization
+- 💡 **Solutions implemented** - Caching strategies, lazy loading, image optimization
+- 📊 **Lessons learned** - 8 months of development insights
+- 🎯 **Results** - 150+ stars, 500+ pulls, 3 companies in production
+
+**[Read the full article on Dev.to →](https://dev.to/tosumitdhaka/building-trishul-snmp-a-modern-web-based-snmp-toolkit-to-replace-500-commercial-tools-3d53)**
+
 
 ---
 
