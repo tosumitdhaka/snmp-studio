@@ -32,9 +32,9 @@ A web-based SNMP toolkit for network engineers and administrators. Simulate SNMP
 ## 🎯 What Trishul-SNMP Replaces
 
 ✅ **Net-SNMP CLI tools** → Web UI with no command memorization  
-✅ **snmpsim** → Custom OID simulator with web interface  
+✅ **snmpsim** → Test SNMP agent responses with web interface  
 ✅ **iReasoning MIB Browser ($500)** → Free MIB browser with tree navigation  
-✅ **snmptrapd** → Real-time trap receiver with web display  
+✅ **snmptrapd** → Real-time trap receiver for testing  
 ✅ **Custom scripts** → Built-in JSON/CSV export functionality  
 ✅ **Multiple scattered tools** → One unified platform
 
@@ -90,9 +90,9 @@ BACKEND_PORT=9000 FRONTEND_PORT=3000 ./install-trishul-snmp.sh up
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      Web Browser (Port 8080)                        │
 │                                                                     │
-│  ┌──────────┐ ┌──────────┐ ┌───────┐ ┌──────┐ ┌────────┐   ┌─────┐  │
-│  │Dashboard │ │Simulator │ │Walker │ │Traps │ │Browser │   │MIBs │  │
-│  └──────────┘ └──────────┘ └───────┘ └──────┘ └────────┘   └─────┘  │
+│  ┌──────────┐ ┌──────────┐ ┌───────┐ ┌──────┐ ┌────────┐ ┌─────┐    │
+│  │Dashboard │ │Simulator │ │Walker │ │Traps │ │Browser │ │MIBs │    │
+│  └──────────┘ └──────────┘ └───────┘ └──────┘ └────────┘ └─────┘    │
 └────────────────────────────┬────────────────────────────────────────┘
                              │ HTTP
                              │
@@ -184,6 +184,60 @@ BACKEND_PORT=9000 FRONTEND_PORT=3000 ./install-trishul-snmp.sh up
 
 **Stack:** Python 3.11 • FastAPI • pysnmp • pysmi • Nginx • Docker
 
+### Key Components
+
+#### **Frontend (Nginx - Port 8080)**
+- **Dashboard** - System overview with real-time stats
+- **Simulator** - Test SNMP agent responses (server mode)
+- **Walker** - Test SNMP client queries (client mode)
+- **Traps** - Send/receive test traps for dev/test environments
+- **MIB Manager** - Upload and validate MIB files
+- **MIB Browser** - Explore MIB structures interactively
+
+#### **Backend (FastAPI - Port 8000)**
+
+**Service Layer:**
+- **MIB Service** - Parse, validate, explore MIBs with syntax checking
+- **SNMP Service** - Client/server components for testing
+- **Auth Service** - Session management
+
+**SNMP Network Layer:**
+- **Simulator (Server - UDP 1061)** - Test SNMP agent responses
+  - Simulate device behavior for client testing
+  - Custom OID values for test scenarios
+  
+- **Trap Sender (Client)** - Send test traps
+  - Test trap receivers in dev/test environments
+  - Validate trap format and syntax
+  - Custom varbinds for integration testing
+  
+- **Trap Receiver (Server - UDP 1162)** - Receive test traps
+  - Test trap senders in dev/test environments
+  - Validate trap parsing logic
+  - Real-time display with OID resolution
+  
+- **Walker (Client)** - Test SNMP queries
+  - Test SNMP agent responses
+  - Validate walk implementations
+  - Export results for analysis (JSON/CSV)
+
+#### **Data Layer**
+- **Docker Volume** - Persistent storage
+  - `mibs/` - MIB files for validation and exploration
+  - `sessions.json` - Authentication tokens
+  - `settings.json` - User preferences
+
+### SNMP Components Overview
+
+| Component | Mode | Port | Use Case |
+|-----------|------|------|----------|
+| **Simulator** | Server | UDP 1061 | Test SNMP agent responses, simulate devices |
+| **Trap Sender** | Client | Dynamic | Send test traps to dev/test NMS systems |
+| **Trap Receiver** | Server | UDP 1162 | Receive test traps, validate sender logic |
+| **Walker** | Client | Dynamic | Test SNMP queries, validate agent responses |
+| **MIB Browser** | N/A | N/A | Explore MIBs, validate syntax, search OIDs |
+| **MIB Manager** | N/A | N/A | Upload, validate, manage MIB files |
+
 ---
 
 ## 🧩 Component Overview
@@ -262,22 +316,37 @@ Manage authentication and system preferences.
 
 ---
 
-## 👥 Best For
+## 🔄 Data Flow Examples
 
-- 🔧 **Network engineers** testing devices and exploring MIB structures
-- 🚀 **DevOps teams** testing SNMP integrations
-- 📚 **Students** learning SNMP protocols and MIB hierarchies
-- ✅ **QA teams** validating SNMP implementations
-- 👥 **Small teams** needing trap monitoring and MIB browsing
-- 🧪 **Developers** building SNMP-enabled applications
+**1. Test SNMP Walk (Client Mode):**
+```
+Walker (Client) → Your Test Device → MIB Service (resolve) → Export JSON/CSV
+```
 
----
+**2. Simulate SNMP Agent (Server Mode):**
+```
+Your SNMP Client → Simulator (Server) → Custom OID Response
+```
 
-## ⚠️ Not For
+**3. Send Test Trap (Client Mode):**
+```
+Trap Sender (Client) → Your NMS/Parser → Validate Format/Syntax
+```
 
-- ❌ Production 24/7 monitoring (use Zabbix, PRTG, LibreNMS)
-- ❌ Enterprise-scale NMS (use SolarWinds, Cisco Prime)
-- ❌ High-availability monitoring (use dedicated monitoring platforms)
+**4. Receive Test Trap (Server Mode):**
+```
+Your App/Device → Trap Receiver (Server) → Real-time Display
+```
+
+**5. Validate MIB:**
+```
+Upload MIB → MIB Service → Syntax Check → Dependency Resolution
+```
+
+**6. Explore MIB Structure:**
+```
+MIB Browser → Tree Builder → Interactive Navigation → OID Details
+```
 
 ---
 
@@ -344,6 +413,25 @@ docker-compose build
 
 ---
 
+## 👥 Best For
+
+- 🔧 **Network engineers** testing devices and exploring MIB structures
+- 🚀 **DevOps teams** testing SNMP integrations
+- 📚 **Students** learning SNMP protocols and MIB hierarchies
+- ✅ **QA teams** validating SNMP implementations
+- 👥 **Small teams** needing trap monitoring and MIB browsing
+- 🧪 **Developers** building SNMP-enabled applications
+
+---
+
+## ⚠️ Not For
+
+- ❌ Production 24/7 monitoring (use Zabbix, PRTG, LibreNMS)
+- ❌ Enterprise-scale NMS (use SolarWinds, Cisco Prime)
+- ❌ High-availability monitoring (use dedicated monitoring platforms)
+
+---
+
 ## 💖 Support This Project
 
 Trishul-SNMP is **100% free and open-source**. If it helps you, consider:
@@ -377,6 +465,10 @@ We welcome contributions from the community! 🎉
 - 📹 **Create content** - Tutorials, videos, blog posts
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+### Code of Conduct
+
+Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
 
 ### Recognition
 
@@ -427,6 +519,7 @@ Thank you to all our supporters! Your contributions help maintain and improve Tr
 - ✨ **Advanced Filtering** - Filter by module and object type (scalars, tables, notifications)
 - ✨ **Detailed Panel** - Compact metadata display with breadcrumb navigation
 - ✨ **Seamless Integration** - Jump to Walker/Trap Sender with pre-filled data
+- ✨ **System MIB Detection** - Visual distinction between loaded and built-in MIBs
 - ✨ **Trap Library** - Enhanced trap manager
 - 🐛 **Fixed** - MIB delete function error handling
 - 🐛 **Fixed** - Trap count consistency across dashboard, manager, and browser
