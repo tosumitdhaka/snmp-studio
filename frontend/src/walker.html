@@ -1,34 +1,49 @@
-
 <div class="row h-100">
     <!-- LEFT: Config -->
-    <div class="col-md-4">
+    <div class="col-lg-4 col-md-5 mb-3 mb-lg-0">
         <div class="card shadow-sm">
-            <div class="card-header">
+            <div class="card-header py-2">
                 <i class="fas fa-cog me-2 text-primary"></i> Target Configuration
             </div>
             <div class="card-body">
+                <!-- Host -->
                 <div class="mb-2">
-                    <label class="form-label small">Host</label>
-                    <input type="text" class="form-control form-control-sm" id="walk-target" value="127.0.0.1">
+                    <label class="form-label small" for="walk-target">Host</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" id="walk-target" value="127.0.0.1" 
+                               placeholder="127.0.0.1" list="recent-targets">
+                        <datalist id="recent-targets"></datalist>
+                        <button class="btn btn-outline-secondary" type="button" onclick="WalkerModule.clearTarget()" 
+                                title="Clear" aria-label="Clear target">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
+                
+                <!-- Port & Community -->
                 <div class="row g-2 mb-2">
                     <div class="col-6">
-                        <label class="form-label small">Port</label>
+                        <label class="form-label small" for="walk-port">Port</label>
                         <input type="number" class="form-control form-control-sm" id="walk-port" value="1061">
                     </div>
                     <div class="col-6">
-                        <label class="form-label small">Community</label>
+                        <label class="form-label small" for="walk-comm">Community</label>
                         <input type="text" class="form-control form-control-sm" id="walk-comm" value="public">
                     </div>
                 </div>
+                
+                <!-- OID -->
                 <div class="mb-3">
-                    <label class="form-label small">OID</label>
+                    <label class="form-label small" for="walk-oid">OID</label>
                     <div class="input-group input-group-sm">
-                        <input type="text" class="form-control" id="walk-oid" value="IF-MIB::ifTable">
-                        <button class="btn btn-outline-secondary" onclick="WalkerModule.browseOid()" title="Browse MIBs">
-                            <i class="fas fa-search"></i>
+                        <input type="text" class="form-control" id="walk-oid" value="IF-MIB::ifTable" 
+                               placeholder="1.3.6.1.2.1.2.2 or IF-MIB::ifTable">
+                        <button class="btn btn-outline-secondary" onclick="WalkerModule.browseOid()" 
+                                title="Browse MIBs" aria-label="Browse MIBs">
+                            <i class="fas fa-sitemap"></i>
                         </button>
                     </div>
+                    <div class="form-text small text-muted">Enter OID or MIB name</div>
                 </div>
                 
                 <hr class="my-2">
@@ -36,44 +51,107 @@
                 <!-- Options -->
                 <div class="mb-3">
                     <div class="form-check form-switch mb-2">
-                        <input class="form-check-input" type="checkbox" id="walk-parse-toggle" checked onchange="WalkerModule.toggleOptions()">
-                        <label class="form-check-label small">Parse to JSON</label>
+                        <input class="form-check-input" type="checkbox" id="walk-parse-toggle" checked 
+                               onchange="WalkerModule.toggleOptions()">
+                        <label class="form-check-label small" for="walk-parse-toggle">Parse to JSON</label>
                     </div>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="walk-use-mibs" checked disabled>
-                        <label class="form-check-label small">Resolve OIDs (Use MIBs)</label>
+                        <label class="form-check-label small" for="walk-use-mibs">Resolve OIDs (Use MIBs)</label>
                     </div>
                     <div class="form-text small mt-1" id="walk-help-text">
                         Parsing requires MIB resolution. Disable parsing to toggle MIB usage.
                     </div>
                 </div>
-                <button class="btn btn-primary w-100" onclick="WalkerModule.execute()">
-                    <i class="fas fa-play"></i> Run Walk
+                
+                <!-- Progress -->
+                <div id="walk-progress" class="d-none mb-3">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span id="walk-progress-text">Walking...</span>
+                        <span id="walk-progress-count">0 items</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             id="walk-progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <!-- Error Alert -->
+                <div id="walk-error" class="alert alert-danger py-2 small d-none mb-3">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    <span id="walk-error-text"></span>
+                </div>
+                
+                <button class="btn btn-primary w-100" id="btn-walk-run" onclick="WalkerModule.execute()">
+                    <i class="fas fa-play me-1"></i> Run Walk
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- RIGHT: Results -->
-    <div class="col-md-8">
-        <div class="card shadow-sm h-100">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-list-alt me-2 text-success"></i> Results</span>
-                <div>
-                    <span class="badge bg-secondary me-2" id="walk-count">0 items</span>
-                    <button class="btn btn-sm btn-outline-dark me-1" onclick="WalkerModule.copyToClipboard()" title="Copy Output">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-dark" onclick="WalkerModule.download('json')" title="Export JSON">
-                        <i class="fas fa-file-code"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-dark" onclick="WalkerModule.download('csv')" title="Export CSV">
-                        <i class="fas fa-file-csv"></i>
-                    </button>
+    <!-- RIGHT: Results & History -->
+    <div class="col-lg-8 col-md-7">
+        <div class="row g-3 h-100">
+            <!-- TOP: Current Result -->
+            <div class="col-12" style="height: 55%;">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-list-alt me-2 text-success"></i> Current Result</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <!-- Search in results -->
+                            <div class="input-group input-group-sm" style="width: 180px;">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="walk-result-search" 
+                                       placeholder="Search results..." oninput="WalkerModule.filterResults()">
+                            </div>
+                            <span class="badge bg-secondary" id="walk-count">0 items</span>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary" onclick="WalkerModule.copyToClipboard()" 
+                                        title="Copy Output" aria-label="Copy output">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="WalkerModule.download('json')" 
+                                        title="Export JSON" aria-label="Export JSON">
+                                    <i class="fas fa-file-code"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="WalkerModule.download('csv')" 
+                                        title="Export CSV" aria-label="Export CSV">
+                                    <i class="fas fa-file-csv"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <pre id="walk-output" class="m-0 p-3 border-0 bg-light font-monospace small" 
+                             style="height: calc(100% - 40px); overflow: auto;">No data yet. Run a walk to see results.</pre>
+                    </div>
                 </div>
             </div>
-            <div class="card-body p-0">
-                <pre id="walk-output" class="m-0 p-3 h-100 border-0 bg-light" style="overflow: auto; max-height: 600px;">No data yet...</pre>
+            
+            <!-- BOTTOM: History -->
+            <div class="col-12" style="height: 42%;">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-history me-2 text-info"></i> Walk History</span>
+                        <div>
+                            <span class="badge bg-secondary" id="walk-history-count">0 saved</span>
+                            <button class="btn btn-sm btn-outline-danger ms-2" onclick="WalkerModule.clearHistory()" 
+                                    title="Clear History" aria-label="Clear history">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="walk-history-empty" class="text-center text-muted p-4">
+                            <i class="fas fa-history fa-2x mb-2 opacity-25"></i>
+                            <div class="small">No walk history yet.<br>Recent walks will appear here.</div>
+                        </div>
+                        <div id="walk-history-list" class="list-group list-group-flush overflow-auto" 
+                             style="max-height: calc(100% - 1px); display: none;">
+                            <!-- History items injected here -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
