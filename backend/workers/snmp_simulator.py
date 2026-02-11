@@ -5,6 +5,7 @@ import json
 import logging
 import asyncio
 import argparse
+from datetime import datetime, timezone
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,8 +23,41 @@ HIDE_DEPRECATED = True
 HIDE_NOT_ACCESSIBLE = True 
 SYSTEM_MIB_DIR = "/usr/share/snmp/mibs"
 
-class MibDataGenerator:
+# Metrics file path (same as router)
+METRICS_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "data", "configs", "simulator_metrics.json"
+)
 
+
+def _update_metrics(request_count=1):
+    """Update request count and last activity in metrics file"""
+    try:
+        metrics = {}
+        if os.path.exists(METRICS_FILE):
+            with open(METRICS_FILE, 'r') as f:
+                metrics = json.load(f)
+        
+        metrics["requests"] = metrics.get("requests", 0) + request_count
+        metrics["last_activity"] = datetime.now(timezone.utc).isoformat()
+        
+        # Calculate uptime if start_time exists
+        if "start_time" in metrics:
+            start = datetime.fromisoformat(metrics["start_time"])
+            now = datetime.now(timezone.utc)
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=timezone.utc)
+            uptime = now - start
+            metrics["uptime"] = str(uptime).split(".")[0]  # Remove microseconds
+        
+        with open(METRICS_FILE, 'w') as f:
+            json.dump(metrics, f)
+            
+    except Exception as e:
+        logger.debug(f"Could not update metrics: {e}")
+
+
+class MibDataGenerator:
     def get_value(self, syntax_obj, custom_val=None):
         # 1. Custom Value
         if custom_val is not None:
@@ -39,7 +73,6 @@ class MibDataGenerator:
                 elif any(x in type_name for x in ["Oid", "ObjectIdentifier", "AutonomousType"]):
                     return v2c.ObjectIdentifier(str(custom_val))
                 
-                # Try generic digit parsing if no type matched
                 if str(custom_val).isdigit(): return v2c.Integer32(int(custom_val))
             except Exception as e:
                 logger.warning(f"Failed to apply custom value '{custom_val}': {e}")
@@ -57,17 +90,14 @@ class MibDataGenerator:
             elif "Counter" in type_name: return v2c.Counter32(random.randint(1000, 999999))
             elif "TimeTicks" in type_name: return v2c.TimeTicks(random.randint(0, 5000000))
             elif "IpAddress" in type_name: return v2c.IpAddress("127.0.0.1")
-            
-            # Handle PhysAddress/MacAddress
             elif "PhysAddress" in type_name or "MacAddress" in type_name:
                 mac_bytes = bytes([random.randint(0, 255) for _ in range(6)])
                 return v2c.OctetString(mac_bytes)
-
             elif "String" in type_name: return v2c.OctetString(f"Sim-{random.randint(1,99)}")
-            
             else: return v2c.Integer32(0)
         except: 
             return v2c.Integer32(0)
+
 
 class MockController:
     def __init__(self, data_dict):
@@ -75,7 +105,9 @@ class MockController:
         self.sorted_oids = sorted(self.db.keys())
 
     def read_variables(self, *var_binds, **kwargs):
+        """Handle SNMP GET requests"""
         logger.debug(f"RX GET: {var_binds}")
+        _update_metrics(request_count=1)  # Track actual SNMP request
         rsp = []
         for oid, val in var_binds:
             key = tuple(oid)
@@ -86,7 +118,9 @@ class MockController:
         return rsp
 
     def read_next_variables(self, *var_binds, **kwargs):
+        """Handle SNMP GETNEXT/WALK requests"""
         logger.debug(f"RX WALK/NEXT: {var_binds}")
+        _update_metrics(request_count=1)  # Track actual SNMP request
         rsp = []
         for oid, val in var_binds:
             current_oid = tuple(oid)

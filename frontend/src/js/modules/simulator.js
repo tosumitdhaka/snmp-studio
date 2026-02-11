@@ -9,8 +9,10 @@ window.SimulatorModule = {
         if (!window.AppState) {
             window.AppState = {};
         }
+        
+        // Load logs from localStorage for persistence
         if (!window.AppState.logs) {
-            window.AppState.logs = [];
+            window.AppState.logs = this.loadLogsFromStorage();
         }
 
         const area = document.getElementById("sim-log-area");
@@ -39,6 +41,64 @@ window.SimulatorModule = {
         if (this.intervalId) {
             clearInterval(this.intervalId);
             this.intervalId = null;
+        }
+    },
+
+    // ==================== Log Persistence ====================
+
+    loadLogsFromStorage: function() {
+        try {
+            const stored = localStorage.getItem('trishul_simulator_logs');
+            if (stored) {
+                return JSON.parse(stored);
+            }
+        } catch (e) {
+            console.error('Failed to load logs from storage:', e);
+        }
+        return [];
+    },
+
+    saveLogsToStorage: function() {
+        try {
+            // Keep only last 500 logs in storage
+            const logsToSave = window.AppState.logs.slice(-500);
+            localStorage.setItem('trishul_simulator_logs', JSON.stringify(logsToSave));
+        } catch (e) {
+            console.error('Failed to save logs to storage:', e);
+        }
+    },
+
+    clearStoredLogs: function() {
+        try {
+            localStorage.removeItem('trishul_simulator_logs');
+        } catch (e) {
+            console.error('Failed to clear logs from storage:', e);
+        }
+    },
+
+    // ==================== Relative Time Formatting ====================
+
+    formatRelativeTime: function(dateString) {
+        if (!dateString) return '--';
+        
+        try {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHour = Math.floor(diffMin / 60);
+            const diffDay = Math.floor(diffHour / 24);
+
+            if (diffSec < 5) return 'just now';
+            if (diffSec < 60) return `${diffSec}s ago`;
+            if (diffMin < 60) return `${diffMin}m ago`;
+            if (diffHour < 24) return `${diffHour}h ago`;
+            if (diffDay < 7) return `${diffDay}d ago`;
+            
+            return date.toLocaleDateString();
+        } catch (e) {
+            return '--';
         }
     },
 
@@ -132,7 +192,7 @@ window.SimulatorModule = {
             jsonError && jsonError.classList.add('d-none');
             editor.classList.remove('is-invalid');
 
-            this.log(`<span class="text-success">Custom data saved: ${data.message}</span>`, 'success');
+            this.log(`Custom data saved: ${data.message}`, 'success');
             this.showToast('Custom data saved successfully');
         } catch (e) {
             console.error('Save error:', e);
@@ -172,7 +232,16 @@ window.SimulatorModule = {
                 throw new Error(`HTTP ${res.status}`);
             }
 
-            this.showToast('Simulator started successfully', 'success');
+            const data = await res.json();
+            
+            if (data.status === 'started') {
+                this.log(data.message || 'Simulator started successfully', 'success');
+                this.showToast(data.message || 'Simulator started successfully', 'success');
+            } else if (data.status === 'already_running') {
+                this.log(data.message || 'Simulator is already running', 'warning');
+                this.showToast(data.message || 'Simulator is already running', 'warning');
+            }
+            
             this.fetchStatus();
         } catch (e) {
             console.error('Start error:', e);
@@ -188,7 +257,10 @@ window.SimulatorModule = {
             if (!res.ok) {
                 throw new Error(`HTTP ${res.status}`);
             }
-            this.showToast('Simulator stopped', 'info');
+
+            const data = await res.json();
+            this.log(data.message || 'Simulator stopped successfully', 'success');
+            this.showToast(data.message || 'Simulator stopped successfully', 'info');
             this.fetchStatus();
         } catch (e) {
             console.error('Stop error:', e);
@@ -200,8 +272,15 @@ window.SimulatorModule = {
     restart: async function() {
         this.log('Restarting simulator...');
         try {
-            await this.stop();
-            setTimeout(() => this.start(), 1000);
+            const res = await fetch('/api/simulator/restart', { method: 'POST' });
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+            this.log(data.message || 'Simulator restarted successfully', 'success');
+            this.showToast(data.message || 'Simulator restarted successfully', 'success');
+            this.fetchStatus();
         } catch (e) {
             console.error('Restart error:', e);
             this.log('Failed to restart simulator: ' + e.message, 'error');
@@ -263,7 +342,8 @@ window.SimulatorModule = {
                 metrics.classList.remove('d-none');
                 uptimeEl.textContent = data.uptime || '--';
                 reqEl.textContent = data.requests || 0;
-                lastActEl.textContent = data.last_activity || '--';
+                // Format as relative time
+                lastActEl.textContent = this.formatRelativeTime(data.last_activity);
             }
         } else {
             badge.className = 'badge bg-secondary';
@@ -333,6 +413,9 @@ window.SimulatorModule = {
         window.AppState.logs.push(html);
         if (window.AppState.logs.length > 500) window.AppState.logs.shift();
 
+        // Persist to localStorage
+        this.saveLogsToStorage();
+
         if (area) {
             if (area.textContent.includes('Waiting for events')) area.innerHTML = '';
             area.innerHTML += html;
@@ -345,6 +428,7 @@ window.SimulatorModule = {
     clearLog: function() {
         const area = document.getElementById('sim-log-area');
         window.AppState.logs = [];
+        this.clearStoredLogs();
         if (area) {
             area.innerHTML = '<div class="text-muted small p-2">Waiting for events...</div>';
         }
