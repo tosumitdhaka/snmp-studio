@@ -36,13 +36,17 @@
                                autocomplete="username">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">New Password</label>
+                        <label class="form-label small fw-bold">
+                            New Password
+                            <span id="password-strength" class="badge ms-2" style="display: none;"></span>
+                        </label>
                         <input type="password" 
                                class="form-control" 
                                id="set-auth-pass" 
                                name="new-password"
                                required 
                                autocomplete="new-password">
+                        <div class="form-text small">At least 6 characters. Mix uppercase, lowercase, numbers, and symbols for stronger security.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Confirm Password</label>
@@ -54,7 +58,7 @@
                                autocomplete="new-password">
                     </div>
                     
-                    <div id="auth-msg" class="alert alert-danger d-none small py-2 mb-3"></div>
+                    <div id="auth-msg" class="alert d-none small py-2 mb-3"></div>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Update Credentials
