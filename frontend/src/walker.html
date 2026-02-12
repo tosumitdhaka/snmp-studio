@@ -92,7 +92,7 @@
         </div>
         
         <!-- BOTTOM: History (fills remaining left space, scrollable) -->
-        <div class="card shadow-sm" style="flex: 1 1 auto; min-height: 200px; overflow: hidden;">
+        <div class="card shadow-sm" style="flex: 1 1 auto; min-height: 250px; max-height: calc(100vh - 220px); overflow: hidden;">
             <div class="card-header py-1 d-flex justify-content-between align-items-center"
                 style="min-height: 32px;">
                 <span class="small">
@@ -155,9 +155,9 @@
                     </div>
                 </div>
             </div>
-            <div class="card-body p-0" style="height: calc(100vh - 180px);">
-                <pre id="walk-output" class="m-0 p-3 border-0 bg-light font-monospace small h-100" 
-                     style="overflow: auto;">No data yet. Run a walk to see results.</pre>
+            <div class="card-body p-0" style="height: calc(100vh - 180px); overflow: hidden;">
+                <pre id="walk-output" class="m-0 p-3 border-0 bg-light font-monospace small overflow-auto" 
+                     style="height: 100%;">No data yet. Run a walk to see results.</pre>
             </div>
         </div>
     </div>
