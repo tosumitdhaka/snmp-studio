@@ -569,16 +569,24 @@ window.TrapsModule = {
 
     formatRelativeTime: function(isoTimestamp) {
         if (!isoTimestamp) return '--';
+        
         try {
             const date = new Date(isoTimestamp);
             const now = new Date();
-            const diffSec = Math.floor((now - date) / 1000);
+            const diffMs = now - date;
+            const diffSec = Math.floor(diffMs / 1000);
             
-            if (diffSec < 5) return 'just now';
-            if (diffSec < 60) return `${diffSec}s ago`;
+            // Sanity check: if > 1 year old, show date instead
+            if (diffMs > 365 * 24 * 60 * 60 * 1000) {
+                return date.toLocaleDateString() + ' (' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + ')';
+            }
+            
+            if (diffSec < 60) return diffSec < 5 ? 'just now' : `${diffSec}s ago`;
             if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
             if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-            return `${Math.floor(diffSec / 86400)}d ago`;
+            if (diffSec < 365 * 86400) return `${Math.floor(diffSec / 86400)}d ago`;
+            
+            return date.toLocaleDateString();
         } catch (e) {
             return '--';
         }
