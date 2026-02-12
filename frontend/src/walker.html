@@ -1,7 +1,8 @@
 <div class="row h-100">
-    <!-- LEFT: Config -->
-    <div class="col-lg-4 col-md-5 mb-3 mb-lg-0">
-        <div class="card shadow-sm">
+    <!-- LEFT: Config + History (40%) -->
+    <div class="col-lg-4 col-md-5 d-flex flex-column" style="height: calc(100vh - 120px);">
+        <!-- TOP: Configuration (~50%) -->
+        <div class="card shadow-sm mb-3" style="flex: 0 0 auto;">
             <div class="card-header py-2">
                 <i class="fas fa-cog me-2 text-primary"></i> Target Configuration
             </div>
@@ -46,8 +47,6 @@
                     <div class="form-text small text-muted">Enter OID or MIB name</div>
                 </div>
                 
-                <hr class="my-2">
-                
                 <!-- Options -->
                 <div class="mb-3">
                     <div class="form-check form-switch mb-2">
@@ -82,76 +81,68 @@
                     <span id="walk-error-text"></span>
                 </div>
                 
-                <button class="btn btn-primary w-100" id="btn-walk-run" onclick="WalkerModule.execute()">
+                <button class="btn btn-primary btn-sm w-100" id="btn-walk-run" onclick="WalkerModule.execute()">
                     <i class="fas fa-play me-1"></i> Run Walk
                 </button>
             </div>
         </div>
+        
+        <!-- BOTTOM: History (~50%, scrollable) -->
+        <div class="card shadow-sm flex-fill" style="min-height: 0; overflow: hidden;">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-history me-2 text-info"></i> Walk History</span>
+                <div>
+                    <span class="badge bg-secondary" id="walk-history-count">0 saved</span>
+                    <button class="btn btn-sm btn-outline-danger ms-2 py-0 px-2" onclick="WalkerModule.clearHistory()" 
+                            title="Clear History" aria-label="Clear history">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0 h-100 overflow-auto">
+                <div id="walk-history-empty" class="text-center text-muted p-4">
+                    <i class="fas fa-history fa-2x mb-2 opacity-25"></i>
+                    <div class="small">No walk history yet.<br>Recent walks will appear here.</div>
+                </div>
+                <div id="walk-history-list" class="list-group list-group-flush" style="display: none;">
+                    <!-- History items injected here -->
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- RIGHT: Results & History -->
+    <!-- RIGHT: Results Only (60%) -->
     <div class="col-lg-8 col-md-7">
-        <div class="row g-3 h-100">
-            <!-- TOP: Current Result -->
-            <div class="col-12" style="height: 55%;">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-list-alt me-2 text-success"></i> Current Result</span>
-                        <div class="d-flex align-items-center gap-2">
-                            <!-- Search in results -->
-                            <div class="input-group input-group-sm" style="width: 180px;">
-                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                <input type="text" class="form-control" id="walk-result-search" 
-                                       placeholder="Search results..." oninput="WalkerModule.filterResults()">
-                            </div>
-                            <span class="badge bg-secondary" id="walk-count">0 items</span>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-secondary" onclick="WalkerModule.copyToClipboard()" 
-                                        title="Copy Output" aria-label="Copy output">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                                <button class="btn btn-outline-secondary" onclick="WalkerModule.download('json')" 
-                                        title="Export JSON" aria-label="Export JSON">
-                                    <i class="fas fa-file-code"></i>
-                                </button>
-                                <button class="btn btn-outline-secondary" onclick="WalkerModule.download('csv')" 
-                                        title="Export CSV" aria-label="Export CSV">
-                                    <i class="fas fa-file-csv"></i>
-                                </button>
-                            </div>
-                        </div>
+        <div class="card shadow-sm h-100">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-list-alt me-2 text-success"></i> Current Result</span>
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Search in results -->
+                    <div class="input-group input-group-sm" style="width: 180px;">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="walk-result-search" 
+                               placeholder="Search results..." oninput="WalkerModule.filterResults()">
                     </div>
-                    <div class="card-body p-0">
-                        <pre id="walk-output" class="m-0 p-3 border-0 bg-light font-monospace small" 
-                             style="height: calc(100% - 40px); overflow: auto;">No data yet. Run a walk to see results.</pre>
+                    <span class="badge bg-secondary" id="walk-count">0 items</span>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary py-1 px-2" onclick="WalkerModule.copyToClipboard()" 
+                                title="Copy Output" aria-label="Copy output">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary py-1 px-2" onclick="WalkerModule.download('json')" 
+                                title="Export JSON" aria-label="Export JSON">
+                            <i class="fas fa-file-code"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary py-1 px-2" onclick="WalkerModule.download('csv')" 
+                                title="Export CSV" aria-label="Export CSV">
+                            <i class="fas fa-file-csv"></i>
+                        </button>
                     </div>
                 </div>
             </div>
-            
-            <!-- BOTTOM: History -->
-            <div class="col-12" style="height: 42%;">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-history me-2 text-info"></i> Walk History</span>
-                        <div>
-                            <span class="badge bg-secondary" id="walk-history-count">0 saved</span>
-                            <button class="btn btn-sm btn-outline-danger ms-2" onclick="WalkerModule.clearHistory()" 
-                                    title="Clear History" aria-label="Clear history">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div id="walk-history-empty" class="text-center text-muted p-4">
-                            <i class="fas fa-history fa-2x mb-2 opacity-25"></i>
-                            <div class="small">No walk history yet.<br>Recent walks will appear here.</div>
-                        </div>
-                        <div id="walk-history-list" class="list-group list-group-flush overflow-auto" 
-                             style="max-height: calc(100% - 1px); display: none;">
-                            <!-- History items injected here -->
-                        </div>
-                    </div>
-                </div>
+            <div class="card-body p-0" style="height: calc(100vh - 180px);">
+                <pre id="walk-output" class="m-0 p-3 border-0 bg-light font-monospace small h-100" 
+                     style="overflow: auto;">No data yet. Run a walk to see results.</pre>
             </div>
         </div>
     </div>
