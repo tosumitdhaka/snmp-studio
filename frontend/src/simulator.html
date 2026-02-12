@@ -1,7 +1,6 @@
-
 <div class="row">
     <!-- LEFT: Status & Config -->
-    <div class="col-md-4">
+    <div class="col-lg-4 col-md-5 mb-3 mb-lg-0">
         <!-- Status Card -->
         <div class="card mb-3 shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center py-2">
@@ -19,14 +18,32 @@
                     </div>
                 </div>
                 
+                <!-- Runtime Metrics -->
+                <div id="sim-metrics" class="d-none mb-3 p-2 bg-light rounded">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="small text-muted">Uptime</div>
+                            <div class="fw-bold" id="sim-uptime">--</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="small text-muted">Requests</div>
+                            <div class="fw-bold" id="sim-requests">0</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="small text-muted">Last Activity</div>
+                            <div class="fw-bold small" id="sim-last-activity">--</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="btn-group w-100">
                     <button class="btn btn-success" id="btn-start" onclick="SimulatorModule.start()">
-                        <i class="fas fa-play"></i> Start
+                        <i class="fas fa-play me-1"></i> Start
                     </button>
                     <button class="btn btn-danger" id="btn-stop" onclick="SimulatorModule.stop()" disabled>
-                        <i class="fas fa-stop"></i> Stop
+                        <i class="fas fa-stop me-1"></i> Stop
                     </button>
-                    <button class="btn btn-outline-secondary" id="btn-restart" onclick="SimulatorModule.restart()" disabled>
+                    <button class="btn btn-outline-secondary" id="btn-restart" onclick="SimulatorModule.restart()" disabled title="Restart simulator">
                         <i class="fas fa-sync"></i>
                     </button>
                 </div>
@@ -35,19 +52,25 @@
 
         <!-- Config Card -->
         <div class="card shadow-sm mb-3">
-            <div class="card-header py-2">
-                <i class="fas fa-cog me-2 text-primary"></i> Configuration
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-cog me-2 text-primary"></i> Configuration</span>
+                <span id="config-hint" class="badge bg-warning text-dark d-none">Restart required</span>
             </div>
             <div class="card-body">
                 <div class="row g-2">
                     <div class="col-6">
-                        <label class="form-label small">Port</label>
-                        <input type="number" class="form-control form-control-sm" id="sim-config-port" value="1061">
+                        <label class="form-label small" for="sim-config-port">Port</label>
+                        <input type="number" class="form-control form-control-sm" id="sim-config-port" value="1061" aria-label="Simulator port">
+                        <div class="form-text small text-muted">UDP port for SNMP agent</div>
                     </div>
                     <div class="col-6">
-                        <label class="form-label small">Community</label>
-                        <input type="text" class="form-control form-control-sm" id="sim-config-comm" value="public">
+                        <label class="form-label small" for="sim-config-comm">Community</label>
+                        <input type="text" class="form-control form-control-sm" id="sim-config-comm" value="public" aria-label="SNMP community string">
+                        <div class="form-text small text-muted">v1/v2c community</div>
                     </div>
+                </div>
+                <div id="config-disabled-hint" class="alert alert-info py-2 small mt-2 mb-0 d-none">
+                    <i class="fas fa-info-circle me-1"></i> Stop simulator to edit configuration
                 </div>
             </div>
         </div>
@@ -56,12 +79,13 @@
         <div class="card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center py-2">
                 <span><i class="fas fa-database me-2 text-info"></i> Custom Data</span>
-                <div>
-                    <button class="btn btn-sm btn-outline-secondary me-1" onclick="SimulatorModule.formatJson()" title="Format JSON">
+                <div class="d-flex align-items-center gap-2">
+                    <span id="unsaved-indicator" class="badge bg-warning d-none">Unsaved changes</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="SimulatorModule.formatJson()" title="Format JSON" aria-label="Format JSON">
                         <i class="fas fa-magic"></i>
                     </button>
                     <button class="btn btn-sm btn-success" onclick="SimulatorModule.saveCustomData()">
-                        <i class="fas fa-save"></i> Save
+                        <i class="fas fa-save me-1"></i> Save
                     </button>
                 </div>
             </div>
@@ -69,23 +93,66 @@
                 <div class="p-2 bg-light border-bottom small text-muted">
                     <i class="fas fa-info-circle"></i> Override OID values (e.g., <code>IF-MIB::ifSpeed.1</code>)
                 </div>
-                <textarea id="custom-data-editor" 
-                          class="form-control border-0 font-monospace" 
-                          style="resize: none; height: 200px; font-size: 0.85rem;"
-                          placeholder='{\n  "IF-MIB::ifSpeed.1": 1000,\n  "IF-MIB::ifDescr.1": "eth0"\n}'></textarea>
+                <div class="position-relative">
+                    <textarea id="custom-data-editor" 
+                              class="form-control border-0 font-monospace" 
+                              style="resize: none; min-height: 200px; font-size: 0.85rem;"
+                              placeholder='{
+  "IF-MIB::ifSpeed.1": 1000,
+  "IF-MIB::ifDescr.1": "eth0"
+}' aria-label="Custom OID data JSON"></textarea>
+                    <div id="json-error-indicator" class="position-absolute bottom-0 end-0 m-2 d-none">
+                        <span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> JSON Error</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- RIGHT: Activity Log -->
-    <div class="col-md-8">
+    <div class="col-lg-8 col-md-7">
         <div class="card h-100 shadow-sm">
-            <div class="card-header py-2">
-                <i class="fas fa-list me-2 text-secondary"></i> Activity Log
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-list me-2 text-secondary"></i> Activity Log</span>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" onclick="SimulatorModule.clearLog()" title="Clear log">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="SimulatorModule.exportLog()" title="Export log">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
             </div>
             <div class="card-body p-0">
-                <div class="p-2 font-monospace small bg-white" style="height: 600px; overflow-y: auto;" id="sim-log-area">
-                    <div class="text-muted">Waiting for events...</div>
+                <!-- Log Toolbar -->
+                <div class="p-2 border-bottom bg-light">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-4 col-sm-6">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="log-search" placeholder="Search logs..." oninput="SimulatorModule.filterLogs()">
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <select class="form-select form-select-sm" id="log-filter" onchange="SimulatorModule.filterLogs()">
+                                <option value="all">All Levels</option>
+                                <option value="info">Info</option>
+                                <option value="success">Success</option>
+                                <option value="warning">Warning</option>
+                                <option value="error">Error</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5 text-md-end">
+                            <span class="small text-muted" id="log-stats">0 entries</span>
+                            <span class="ms-2 badge bg-secondary" id="log-live-indicator">
+                                <i class="fas fa-circle text-success fa-xs me-1"></i> Live
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Log Area -->
+                <div class="p-2 font-monospace small bg-white" style="height: calc(100vh - 350px); min-height: 300px; overflow-y: auto;" id="sim-log-area" aria-live="polite" aria-atomic="false">
+                    <div class="text-muted p-2">Waiting for events...</div>
                 </div>
             </div>
         </div>
