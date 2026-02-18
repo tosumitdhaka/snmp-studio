@@ -121,9 +121,9 @@ window.BrowserModule = {
                     if (searchInput) {
                         searchInput.value = state.searchQuery;
                         
-                        // Show clear button if search has text
+                        // BUG FIX: was style.display = 'block' — overridden by d-none class
                         if (clearBtn && state.searchQuery.length > 0) {
-                            clearBtn.style.display = 'block';
+                            clearBtn.classList.remove('d-none');
                         }
                         
                         if (state.searchQuery.length >= 2) {
@@ -239,7 +239,6 @@ window.BrowserModule = {
                 await this.loadNodeDetails(this.pendingSelectedOid);
             } catch (e) {
                 console.error('Failed to restore node details:', e);
-                // Show a user-friendly message in details panel
                 const panel = document.getElementById('browser-details-panel');
                 if (panel) {
                     panel.innerHTML = `
@@ -256,7 +255,6 @@ window.BrowserModule = {
             }
         } else {
             console.warn(`Could not find node to restore: ${this.pendingSelectedOid}`);
-            // Clear the details panel with a message
             const panel = document.getElementById('browser-details-panel');
             if (panel) {
                 panel.innerHTML = `
@@ -320,7 +318,7 @@ window.BrowserModule = {
             
             // Populate filter dropdown
             const select = document.getElementById('browser-module-filter');
-            if (!select) return; // Guard against missing element
+            if (!select) return;
             
             select.innerHTML = '<option value="">All Modules</option>';
             
@@ -335,7 +333,7 @@ window.BrowserModule = {
                 });
             }
             
-            return this.allModules; // Return for chaining
+            return this.allModules;
         } catch (e) {
             console.error('Failed to load modules:', e);
             return [];
@@ -345,16 +343,15 @@ window.BrowserModule = {
     switchView: function(view) {
         this.currentView = view;
         this.setButtonStates();
-        this.saveState(); // Save state
+        this.saveState();
         
-        // Show/hide filters based on view
         const filtersSection = document.getElementById('filters-section');
         const searchSection = document.getElementById('search-section');
         
         if (view === 'oid') {
-            // Disable filters in OID view
-            filtersSection.style.display = 'none';
-            searchSection.style.display = 'none';
+            // BUG FIX: was style.display = 'none' — use classList for consistency
+            filtersSection.classList.add('d-none');
+            searchSection.classList.add('d-none');
             
             // Clear filters
             this.currentModule = null;
@@ -362,11 +359,12 @@ window.BrowserModule = {
             document.getElementById('browser-module-filter').value = '';
             document.getElementById('browser-type-filter').value = '';
             document.getElementById('browser-search-input').value = '';
+            document.getElementById('btn-clear-search').classList.add('d-none');
             this.isSearchActive = false;
         } else {
-            // Enable filters in Module view
-            filtersSection.style.display = 'block';
-            searchSection.style.display = 'block';
+            // BUG FIX: was style.display = 'block'
+            filtersSection.classList.remove('d-none');
+            searchSection.classList.remove('d-none');
         }
         
         // Update title
@@ -385,9 +383,8 @@ window.BrowserModule = {
         this.currentModule = moduleSelect.value || null;
         this.currentTypeFilter = typeSelect.value || null;
 
-        this.saveState(); // Save state
+        this.saveState();
         
-        // If search is active, re-run search with filters
         const searchInput = document.getElementById('browser-search-input');
         if (searchInput.value.trim().length >= 2) {
             this.search();
@@ -412,7 +409,8 @@ window.BrowserModule = {
     
     clearSearch: function() {
         document.getElementById('browser-search-input').value = '';
-        document.getElementById('btn-clear-search').style.display = 'none';
+        // BUG FIX: was style.display = 'none'
+        document.getElementById('btn-clear-search').classList.add('d-none');
         this.isSearchActive = false;
         this.loadTree();
     },
@@ -421,12 +419,12 @@ window.BrowserModule = {
         const searchInput = document.getElementById('browser-search-input');
         const query = searchInput.value.trim();
         
-        // Show/hide clear button
+        // BUG FIX: was style.display = 'block'/'none'
         const clearBtn = document.getElementById('btn-clear-search');
         if (query.length > 0) {
-            clearBtn.style.display = 'block';
+            clearBtn.classList.remove('d-none');
         } else {
-            clearBtn.style.display = 'none';
+            clearBtn.classList.add('d-none');
         }
         
         clearTimeout(this.searchTimeout);
@@ -473,10 +471,8 @@ window.BrowserModule = {
                 return;
             }
             
-            // Render search results as a list
             this.renderSearchResults(data.results, container);
             
-            // Restore selected node if it's in the search results
             if (this.pendingSelectedOid) {
                 setTimeout(() => {
                     this.restoreSelectedNode();
@@ -566,7 +562,6 @@ window.BrowserModule = {
                 this.renderModuleTree(data.modules, container);
                 countBadge.textContent = data.count;
                 
-                // Restore expanded nodes after tree is rendered
                 setTimeout(() => {
                     this.restoreExpandedNodes();
                 }, 100);
@@ -586,7 +581,6 @@ window.BrowserModule = {
                 this.renderOidTree(data, container);
                 countBadge.textContent = data.total_descendants;
                 
-                // Restore expanded nodes after tree is rendered
                 setTimeout(() => {
                     this.restoreExpandedNodes();
                 }, 100);
@@ -606,7 +600,6 @@ window.BrowserModule = {
         let html = '';
         
         modules.forEach(module => {
-            // Filter children by type if type filter is active
             let children = module.children || [];
             
             if (this.currentTypeFilter) {
@@ -615,7 +608,6 @@ window.BrowserModule = {
             
             const hasChildren = children.length > 0;
             
-            // Skip module if no children match filter
             if (this.currentTypeFilter && !hasChildren) {
                 return;
             }
@@ -700,11 +692,9 @@ window.BrowserModule = {
         let filtered = [];
         
         nodes.forEach(node => {
-            // Check if node matches filter
             if (node.type === typeFilter) {
                 filtered.push(node);
             } else if (node.children && node.children.length > 0) {
-                // Recursively check children
                 const filteredChildren = this.filterNodesByType(node.children, typeFilter);
                 if (filteredChildren.length > 0) {
                     const nodeCopy = {...node};
@@ -713,8 +703,6 @@ window.BrowserModule = {
                 }
             }
         });
-        
-        // console.log(`filterNodesByType: ${nodes.length} nodes → ${filtered.length} filtered (type: ${typeFilter})`);
         
         return filtered;
     },
@@ -804,7 +792,6 @@ window.BrowserModule = {
             const children = node.querySelector(':scope > .tree-children');
             
             if (icon && children) {
-                // Load children if not loaded
                 if (children.innerHTML.trim() === '') {
                     try {
                         const module = this.currentModule || '';
@@ -821,7 +808,6 @@ window.BrowserModule = {
                     }
                 }
                 
-                // Expand
                 icon.classList.remove('fa-chevron-right');
                 icon.classList.add('fa-chevron-down');
                 children.style.display = 'block';
@@ -830,7 +816,6 @@ window.BrowserModule = {
     },
 
     expandOidTree: async function() {
-        // Find the root node (1.3.6.1 - internet)
         const rootNode = document.querySelector('.tree-node[data-oid="1.3.6.1"]');
         
         if (!rootNode) {
@@ -838,7 +823,6 @@ window.BrowserModule = {
             return;
         }
         
-        // Expand root and first two levels
         await this.expandNodeRecursively(rootNode, 2);
     },
 
@@ -851,7 +835,6 @@ window.BrowserModule = {
         
         if (!icon || !children) return;
         
-        // Load children if not loaded
         if (children.innerHTML.trim() === '') {
             try {
                 const module = this.currentModule || '';
@@ -869,12 +852,10 @@ window.BrowserModule = {
             }
         }
         
-        // Expand this node
         icon.classList.remove('fa-chevron-right');
         icon.classList.add('fa-chevron-down');
         children.style.display = 'block';
         
-        // Recursively expand children
         if (depth > 1) {
             const childNodes = children.querySelectorAll(':scope > .tree-node');
             for (const childNode of childNodes) {
@@ -919,11 +900,9 @@ window.BrowserModule = {
         if (!childrenEl) return;
         
         if (childrenEl.style.display === 'none') {
-            // Expand
             icon.classList.remove('fa-chevron-right');
             icon.classList.add('fa-chevron-down');
             
-            // Load children if not already loaded
             if (childrenEl.innerHTML === '') {
                 try {
                     const module = this.currentModule || '';
@@ -945,7 +924,6 @@ window.BrowserModule = {
             
             childrenEl.style.display = 'block';
         } else {
-            // Collapse
             icon.classList.remove('fa-chevron-down');
             icon.classList.add('fa-chevron-right');
             childrenEl.style.display = 'none';
@@ -953,7 +931,6 @@ window.BrowserModule = {
     },
     
     selectNode: async function(oid) {
-        // Highlight selected node
         document.querySelectorAll('.tree-node-content, .search-result-item').forEach(el => {
             el.classList.remove('bg-primary', 'text-white', 'active');
         });
@@ -964,10 +941,8 @@ window.BrowserModule = {
             nodeEl.classList.add('bg-primary', 'text-white');
         }
         
-        // Load details
         await this.loadNodeDetails(oid);
         
-        // Save state after selection
         this.saveState();
     },
     
@@ -992,7 +967,6 @@ window.BrowserModule = {
         } catch (e) {
             console.error('Failed to load details:', e);
             
-            // Show user-friendly error message
             panel.innerHTML = `
                 <div class="alert alert-warning m-3">
                     <i class="fas fa-exclamation-triangle me-2"></i>
@@ -1154,7 +1128,6 @@ window.BrowserModule = {
     },
     
     useInTrapSender: function(trapData) {
-        // Handle both string (old) and object (new) formats
         if (typeof trapData === 'string') {
             sessionStorage.setItem('trapOid', trapData);
         } else {

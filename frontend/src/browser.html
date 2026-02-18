@@ -21,6 +21,9 @@
                 </div>
 
                 <!-- Search Input -->
+                <!-- BUG FIX: was style="display:none" on clear button —
+                     debounceSearch()/restoreState() use classList so inline
+                     style was always winning. Changed to d-none class. -->
                 <div class="mb-3" id="search-section">
                     <div class="input-group">
                         <span class="input-group-text bg-white">
@@ -29,8 +32,9 @@
                         <input type="text" id="browser-search-input" class="form-control" 
                             placeholder="Search OIDs, modules, or descriptions..." 
                             onkeyup="BrowserModule.debounceSearch()">
-                        <button class="btn btn-outline-secondary" onclick="BrowserModule.clearSearch()" 
-                                id="btn-clear-search" style="display: none;">
+                        <button class="btn btn-outline-secondary d-none"
+                                onclick="BrowserModule.clearSearch()" 
+                                id="btn-clear-search">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
