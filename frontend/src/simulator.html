@@ -10,24 +10,24 @@
             <div class="card-body">
                 <div class="d-flex align-items-center mb-3">
                     <div id="sim-icon-wrapper" class="me-3 text-secondary">
-                        <i class="fas fa-server fa-2x"></i>
+                        <i class="fas fa-server fa-lg"></i>  <!-- was fa-2x -->
                     </div>
                     <div>
-                        <h5 class="mb-0" id="sim-state-text">Offline</h5>
+                        <h6 class="mb-0" id="sim-state-text">Offline</h6>  <!-- was h5 -->
                         <small class="text-muted" id="sim-detail-text">Process stopped</small>
                     </div>
                 </div>
-                
+
                 <!-- Runtime Metrics -->
                 <div id="sim-metrics" class="d-none mb-3 p-2 bg-light rounded">
                     <div class="row text-center">
                         <div class="col-4">
                             <div class="small text-muted">Uptime</div>
-                            <div class="fw-bold" id="sim-uptime">--</div>
+                            <div class="fw-bold small" id="sim-uptime">--</div>
                         </div>
                         <div class="col-4">
                             <div class="small text-muted">Requests</div>
-                            <div class="fw-bold" id="sim-requests">0</div>
+                            <div class="fw-bold small" id="sim-requests">0</div>
                         </div>
                         <div class="col-4">
                             <div class="small text-muted">Last Activity</div>
@@ -35,15 +35,16 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="btn-group w-100">
-                    <button class="btn btn-success" id="btn-start" onclick="SimulatorModule.start()">
+                    <button class="btn btn-sm btn-success" id="btn-start" onclick="SimulatorModule.start()">
                         <i class="fas fa-play me-1"></i> Start
                     </button>
-                    <button class="btn btn-danger" id="btn-stop" onclick="SimulatorModule.stop()" disabled>
+                    <button class="btn btn-sm btn-danger" id="btn-stop" onclick="SimulatorModule.stop()" disabled>
                         <i class="fas fa-stop me-1"></i> Stop
                     </button>
-                    <button class="btn btn-outline-secondary" id="btn-restart" onclick="SimulatorModule.restart()" disabled title="Restart simulator">
+                    <button class="btn btn-sm btn-outline-secondary" id="btn-restart" onclick="SimulatorModule.restart()" disabled
+                            title="Restart simulator" aria-label="Restart simulator">
                         <i class="fas fa-sync"></i>
                     </button>
                 </div>
@@ -81,10 +82,11 @@
                 <span><i class="fas fa-database me-2 text-info"></i> Custom Data</span>
                 <div class="d-flex align-items-center gap-2">
                     <span id="unsaved-indicator" class="badge bg-warning d-none">Unsaved changes</span>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="SimulatorModule.formatJson()" title="Format JSON" aria-label="Format JSON">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="SimulatorModule.formatJson()"
+                            title="Format JSON" aria-label="Format JSON">
                         <i class="fas fa-magic"></i>
                     </button>
-                    <button class="btn btn-sm btn-success" onclick="SimulatorModule.saveCustomData()">
+                    <button class="btn btn-sm btn-success" onclick="SimulatorModule.saveCustomData()" aria-label="Save custom data">
                         <i class="fas fa-save me-1"></i> Save
                     </button>
                 </div>
@@ -94,9 +96,9 @@
                     <i class="fas fa-info-circle"></i> Override OID values (e.g., <code>IF-MIB::ifSpeed.1</code>)
                 </div>
                 <div class="position-relative">
-                    <textarea id="custom-data-editor" 
-                              class="form-control border-0 font-monospace" 
-                              style="resize: none; min-height: 200px; font-size: 0.85rem;"
+                    <textarea id="custom-data-editor"
+                              class="form-control border-0 font-monospace"
+                              style="resize: none; min-height: 150px; font-size: 0.85rem;"  <!-- was 200px -->
                               placeholder='{
   "IF-MIB::ifSpeed.1": 1000,
   "IF-MIB::ifDescr.1": "eth0"
@@ -115,10 +117,12 @@
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <span><i class="fas fa-list me-2 text-secondary"></i> Activity Log</span>
                 <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary" onclick="SimulatorModule.clearLog()" title="Clear log">
+                    <button class="btn btn-outline-secondary" onclick="SimulatorModule.clearLog()"
+                            title="Clear log" aria-label="Clear log">
                         <i class="fas fa-trash"></i>
                     </button>
-                    <button class="btn btn-outline-secondary" onclick="SimulatorModule.exportLog()" title="Export log">
+                    <button class="btn btn-outline-secondary" onclick="SimulatorModule.exportLog()"
+                            title="Export log" aria-label="Export log">
                         <i class="fas fa-download"></i>
                     </button>
                 </div>
@@ -130,7 +134,8 @@
                         <div class="col-md-4 col-sm-6">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                <input type="text" class="form-control" id="log-search" placeholder="Search logs..." oninput="SimulatorModule.filterLogs()">
+                                <input type="text" class="form-control" id="log-search"
+                                       placeholder="Search logs..." oninput="SimulatorModule.filterLogs()">
                             </div>
                         </div>
                         <div class="col-md-3 col-sm-6">
@@ -150,8 +155,10 @@
                         </div>
                     </div>
                 </div>
-                <!-- Log Area -->
-                <div class="p-2 font-monospace small bg-white" style="height: calc(100vh - 350px); min-height: 300px; overflow-y: auto;" id="sim-log-area" aria-live="polite" aria-atomic="false">
+                <!-- Log Area — height from CSS variable -->
+                <div class="p-2 font-monospace small bg-white"
+                     style="height: var(--sim-log-height); min-height: 300px; overflow-y: auto;"
+                     id="sim-log-area" aria-live="polite" aria-atomic="false">
                     <div class="text-muted p-2">Waiting for events...</div>
                 </div>
             </div>
