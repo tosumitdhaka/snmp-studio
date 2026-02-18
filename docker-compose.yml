@@ -1,7 +1,10 @@
-version: '3.8'
+# docker-compose.yml
+# Part C fixes:
+#   C1: removed deprecated 'version' key (Compose v2 ignores it with a warning)
+#   C2: added healthcheck on backend — frontend waits for FastAPI to be ready
+#       before nginx starts proxying, preventing 502 on first page load
 
 services:
-  # Backend Service
   backend:
     build: ./backend
     container_name: trishul-snmp-backend
@@ -27,17 +30,28 @@ services:
       - TRAP_PORT=${TRAP_PORT:-1162}
       # Security
       - SESSION_TIMEOUT=${SESSION_TIMEOUT:-3600}
+      # CORS
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:8080}
-      # Other Settings
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Auto-Start flags (Part A)
+      - AUTO_START_SIMULATOR=${AUTO_START_SIMULATOR:-true}
+      - AUTO_START_TRAP_RECEIVER=${AUTO_START_TRAP_RECEIVER:-true}
+    # C2: healthcheck — probe /api/health until FastAPI is ready
+    # start_period covers MIB loading time on first boot
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: always
 
-  # Frontend Service
   frontend:
     build: ./frontend
     container_name: trishul-snmp-frontend
     ports:
       - "8080:80"
+    # C2: wait for backend to pass healthcheck before starting nginx
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: always

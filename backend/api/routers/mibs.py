@@ -4,7 +4,10 @@ api/routers/mibs.py
 MIB file management + stats wiring.
 
 Fixes:
-  IMPR-11: filename sanitization in save_mib_file() — strips path traversal attempts
+  IMPR-11 : filename sanitization in save_mib_file()
+  Part-B  : simulator restart on reload uses _restart_simulator_with_stats()
+             so restart_count + simulator_run_seconds are always tracked.
+             Trap restart on reload uses stored port/community/resolve_mibs.
 """
 
 import os
@@ -45,25 +48,19 @@ class BatchValidationResponse(BaseModel):
 def save_mib_file(file: UploadFile) -> str:
     """Save uploaded MIB file with filename sanitization (IMPR-11)."""
     try:
-        # IMPR-11: strip any directory components from filename
-        # e.g. "../../etc/evil.mib" -> "evil.mib"
         safe_name = pathlib.Path(file.filename).name
         if not safe_name or safe_name != file.filename:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid filename '{file.filename}'. Directory traversal not allowed."
             )
-
         os.makedirs(settings.MIB_DIR, exist_ok=True)
         file_path = os.path.join(settings.MIB_DIR, safe_name)
-
         with open(file_path, 'wb') as f:
             content = file.file.read()
             f.write(content)
-
         logger.info(f"Saved MIB file: {safe_name}")
         return safe_name
-
     except HTTPException:
         raise
     except Exception as e:
@@ -72,7 +69,6 @@ def save_mib_file(file: UploadFile) -> str:
 
 
 def delete_mib_file(filename: str) -> bool:
-    """Delete MIB file."""
     try:
         file_path = os.path.join(settings.MIB_DIR, filename)
         if not os.path.exists(file_path):
@@ -86,7 +82,6 @@ def delete_mib_file(filename: str) -> bool:
 
 
 def list_mib_files() -> List[str]:
-    """List all MIB files."""
     try:
         if not os.path.exists(settings.MIB_DIR):
             return []
@@ -97,6 +92,35 @@ def list_mib_files() -> List[str]:
     except Exception as e:
         logger.error(f"Failed to list MIB files: {e}")
         return []
+
+
+def _reload_dependents(sim_was_running: bool, trap_was_running: bool) -> dict:
+    """
+    Part B: restart simulator and trap receiver after a MIB reload.
+    Uses shared stats helper for simulator, stored settings for trap manager.
+    Returns status strings for both.
+    """
+    # Import here to avoid circular import at module load time
+    from api.routers.simulator import _restart_simulator_with_stats
+
+    sim_msg  = "Simulator not running"
+    trap_msg = "Trap receiver not running"
+
+    if sim_was_running:
+        _restart_simulator_with_stats()
+        sim_msg = "Simulator restarted"
+
+    if trap_was_running:
+        # Use stored _port, _community, resolve_mibs — not defaults
+        trap_manager.stop()
+        trap_manager.start(
+            port=trap_manager._port,
+            community=trap_manager._community,
+            resolve_mibs=trap_manager.resolve_mibs
+        )
+        trap_msg = "Trap receiver restarted"
+
+    return {"simulator": sim_msg, "trap_receiver": trap_msg}
 
 
 # ==================== Endpoints ====================
@@ -116,7 +140,7 @@ async def validate_batch(files: List[UploadFile] = File(...)):
     mib_service = get_mib_service()
     temp_dir    = tempfile.mkdtemp(prefix="mib_validation_")
     try:
-        temp_files  = {}
+        temp_files = {}
         for file in files:
             content   = await file.read()
             temp_path = os.path.join(temp_dir, file.filename)
@@ -125,16 +149,14 @@ async def validate_batch(files: List[UploadFile] = File(...)):
             temp_files[file.filename] = temp_path
 
         batch_mibs  = {}
-        all_imports = {}
         for filename, temp_path in temp_files.items():
             validation = mib_service.validate_mib_file(temp_path)
             batch_mibs[validation["mib_name"]] = filename
-            all_imports[filename] = validation["imports"]
 
-        results       = []
+        results        = []
         global_missing = set()
         for filename, temp_path in temp_files.items():
-            validation   = mib_service.validate_mib_file(temp_path)
+            validation    = mib_service.validate_mib_file(temp_path)
             truly_missing = []
             for dep in validation["missing_deps"]:
                 if dep in batch_mibs: continue
@@ -151,7 +173,6 @@ async def validate_batch(files: List[UploadFile] = File(...)):
                 missing_deps=truly_missing,
                 errors=validation["errors"]
             ))
-
         return BatchValidationResponse(
             files=results,
             global_missing_deps=sorted(list(global_missing)),
@@ -166,9 +187,8 @@ async def upload_mibs(files: List[UploadFile] = File(...)):
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
 
-    results      = []
-    files_saved  = 0
-
+    results     = []
+    files_saved = 0
     try:
         for file in files:
             try:
@@ -179,6 +199,9 @@ async def upload_mibs(files: List[UploadFile] = File(...)):
             except Exception as e:
                 logger.error(f"Failed to save {file.filename}: {e}")
                 results.append({"filename": file.filename, "status": "error", "error": str(e)})
+
+        sim_was_running  = SimulatorManager.status().get("running", False)
+        trap_was_running = trap_manager.get_status().get("running", False)
 
         mib_service = get_mib_service()
         mib_service.reload()
@@ -192,9 +215,8 @@ async def upload_mibs(files: List[UploadFile] = File(...)):
             mib_name = result["mib_name"]
             if mib_name in mib_service.loaded_mibs:
                 result["status"] = "loaded"
-                mib_info = mib_service.loaded_mibs[mib_name]
-                result["objects"] = mib_info.objects_count
-                result["traps"]   = mib_info.traps_count
+                result["objects"] = mib_service.loaded_mibs[mib_name].objects_count
+                result["traps"]   = mib_service.loaded_mibs[mib_name].traps_count
             elif mib_name in mib_service.failed_mibs:
                 result["status"] = "failed"
                 result["error"]  = mib_service.failed_mibs[mib_name].error_message
@@ -202,7 +224,8 @@ async def upload_mibs(files: List[UploadFile] = File(...)):
                 result["status"] = "unknown"
                 result["error"]  = "MIB not found after reload"
 
-        return {"results": results}
+        dep_msgs = _reload_dependents(sim_was_running, trap_was_running)
+        return {"results": results, **dep_msgs}
 
     except Exception as e:
         logger.error(f"Upload failed: {e}", exc_info=True)
@@ -212,32 +235,21 @@ async def upload_mibs(files: List[UploadFile] = File(...)):
 @router.post("/reload")
 def reload_mibs():
     try:
+        sim_was_running  = SimulatorManager.status().get("running", False)
+        trap_was_running = trap_manager.get_status().get("running", False)
+
         mib_service = get_mib_service()
         mib_service.reload()
         stats_store.increment("mibs", "reload_count")
 
-        sim_status = SimulatorManager.status()
-        if sim_status.get("running"):
-            SimulatorManager.restart()
-            sim_msg = "Simulator restarted"
-        else:
-            sim_msg = "Simulator not running"
+        status   = mib_service.get_status()
+        dep_msgs = _reload_dependents(sim_was_running, trap_was_running)
 
-        trap_status = trap_manager.get_status()
-        if trap_status.get("running"):
-            trap_manager.stop()
-            trap_manager.start()
-            trap_msg = "Trap receiver restarted"
-        else:
-            trap_msg = "Trap receiver not running"
-
-        status = mib_service.get_status()
         return {
-            "status":       "reloaded",
-            "loaded":       status["loaded"],
-            "failed":       status["failed"],
-            "simulator":    sim_msg,
-            "trap_receiver": trap_msg
+            "status": "reloaded",
+            "loaded": status["loaded"],
+            "failed": status["failed"],
+            **dep_msgs
         }
     except Exception as e:
         logger.error(f"Reload failed: {e}")

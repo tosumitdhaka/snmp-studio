@@ -4,14 +4,17 @@ api/routers/simulator.py
 Simulator lifecycle endpoints + custom data management.
 Stats are persisted to stats.json via stats_store.
 
-Bug fixes:
-  BUG-8  : restart() now preserves saved port/community (via sim_manager fix)
-  BUG-12 : single restart code path (sim_manager.restart uses start/stop)
+Fixes in this version:
+  BUG-8  : restart() preserves saved port/community (via sim_manager)
+  BUG-12 : single restart code path
+  Part-B : _restart_simulator_with_stats() shared helper — used by this
+           router AND mibs.py so indirect restarts are always tracked
 """
 
 import os
 import json
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException
@@ -23,34 +26,67 @@ from core import stats_store
 router = APIRouter(prefix="/simulator", tags=["Simulator"])
 logger = logging.getLogger(__name__)
 
+
 class SimConfig(BaseModel):
     port: Optional[int] = None
     community: Optional[str] = None
 
-# In-memory start time for run-seconds calculation.
-# Resets on container restart — only used for delta calculation, not persisted.
+
+# ---------------------------------------------------------------------------
+# Module-level start-time tracker
+# In-memory only — resets on container restart.
+# Used exclusively for delta calculation of simulator_run_seconds.
+# ---------------------------------------------------------------------------
 _sim_start_time: Optional[datetime] = None
 
 
-def _record_stop_stats() -> None:
-    """Calculate elapsed run time and persist stop stats atomically."""
+def set_sim_start_time() -> None:
+    """Seed _sim_start_time to now. Called by lifespan auto-start and tests."""
     global _sim_start_time
-    s = stats_store.load()
+    _sim_start_time = datetime.now(timezone.utc)
+
+
+def _record_stop_stats() -> None:
+    """Accumulate elapsed run time and increment stop_count atomically."""
+    global _sim_start_time
     elapsed = 0
     if _sim_start_time:
         elapsed = int((datetime.now(timezone.utc) - _sim_start_time).total_seconds())
         _sim_start_time = None
+    s = stats_store.load()
     stats_store.update_module("simulator", {
-        "stop_count": s["simulator"]["stop_count"] + 1,
-        "simulator_run_seconds": s["simulator"]["simulator_run_seconds"] + elapsed
+        "stop_count":            s["simulator"]["stop_count"] + 1,
+        "simulator_run_seconds": s["simulator"]["simulator_run_seconds"] + elapsed,
     })
 
+
+def _restart_simulator_with_stats() -> dict:
+    """
+    Part B: shared restart helper used by:
+      - POST /simulator/restart  (endpoint)
+      - POST /simulator/data     (conditional restart after data update)
+      - POST /mibs/reload        (conditional restart after MIB reload)
+
+    Ensures _sim_start_time and restart_count are always updated regardless
+    of which code path triggers the restart.
+    """
+    _record_stop_stats()          # stop leg: accumulate run time
+    time.sleep(0.5)
+    result = SimulatorManager.restart()
+    if result.get("status") == "started":
+        set_sim_start_time()      # start leg: seed new start time
+        stats_store.increment("simulator", "restart_count")
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
 
 @router.get("/status")
 def get_status():
     status = SimulatorManager.status()
-    running = status.get("running", False)
-    if running and _sim_start_time:
+    if status.get("running") and _sim_start_time:
         delta = datetime.now(timezone.utc) - _sim_start_time
         status["uptime"] = str(delta).split(".")[0]
     else:
@@ -61,32 +97,30 @@ def get_status():
 @router.post("/start")
 def start_simulator(config: SimConfig = None):
     global _sim_start_time
-    p = config.port if config else None
+    p = config.port      if config else None
     c = config.community if config else None
 
-    current_status = SimulatorManager.status()
-    if current_status.get("running"):
+    current = SimulatorManager.status()
+    if current.get("running"):
         return {
-            "status": "already_running",
-            "message": "Simulator is already running",
-            "pid": current_status.get("pid"),
-            "port": current_status.get("port"),
-            "community": current_status.get("community")
+            "status":    "already_running",
+            "message":   "Simulator is already running",
+            "pid":       current.get("pid"),
+            "port":      current.get("port"),
+            "community": current.get("community"),
         }
 
     result = SimulatorManager.start(port=p, community=c)
-
     if result.get("status") == "started":
-        _sim_start_time = datetime.now(timezone.utc)
+        set_sim_start_time()
         stats_store.increment("simulator", "start_count")
         return {
-            "status": "started",
-            "message": "Simulator started successfully",
-            "pid": result.get("pid"),
-            "port": result.get("port"),
-            "community": result.get("community")
+            "status":    "started",
+            "message":   "Simulator started successfully",
+            "pid":       result.get("pid"),
+            "port":      result.get("port"),
+            "community": result.get("community"),
         }
-
     return result
 
 
@@ -101,27 +135,16 @@ def stop_simulator():
 
 @router.post("/restart")
 def restart_simulator():
-    global _sim_start_time
-    # Record stop stats for the current run before restarting
-    _record_stop_stats()
-
-    import time
-    time.sleep(0.5)
-
-    # BUG-8/BUG-12: SimulatorManager.restart() now preserves port/community
-    start_result = SimulatorManager.restart()
-
-    if start_result.get("status") == "started":
-        _sim_start_time = datetime.now(timezone.utc)
-        stats_store.increment("simulator", "restart_count")
+    result = _restart_simulator_with_stats()
+    if result.get("status") == "started":
         return {
-            "status": "restarted",
-            "message": "Simulator restarted successfully",
-            "pid": start_result.get("pid"),
-            "port": start_result.get("port"),
-            "community": start_result.get("community")
+            "status":    "restarted",
+            "message":   "Simulator restarted successfully",
+            "pid":       result.get("pid"),
+            "port":      result.get("port"),
+            "community": result.get("community"),
         }
-    return start_result
+    return result
 
 
 @router.get("/data")
@@ -138,14 +161,15 @@ def get_custom_data():
 
 @router.post("/data")
 def update_custom_data(data: dict):
+    """Save custom OID data. If simulator is running, restart it with stats tracking."""
     try:
         os.makedirs(settings.CUSTOM_DATA_FILE.parent, exist_ok=True)
         with open(settings.CUSTOM_DATA_FILE, 'w') as f:
             json.dump(data, f, indent=2)
 
-        sim_status = SimulatorManager.status()
-        if sim_status.get("running"):
-            SimulatorManager.restart()
+        if SimulatorManager.status().get("running"):
+            # Part B fix: use shared helper so restart_count + run_seconds are tracked
+            _restart_simulator_with_stats()
             msg = "Data saved and simulator restarted"
         else:
             msg = "Data saved (simulator is currently stopped)"
