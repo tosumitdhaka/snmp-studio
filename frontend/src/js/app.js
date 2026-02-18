@@ -1,5 +1,5 @@
 const API_BASE = "/api";
-let currentModule = null; 
+let currentModule = null;
 
 window.AppState = {
     simulator: null,
@@ -21,9 +21,9 @@ window.fetch = async function(url, options = {}) {
     }
 
     const response = await originalFetch(url, options);
-    
+
     if (response.status === 401 && !url.includes("/login")) {
-        logout(false); 
+        logout(false);
     }
 
     return response;
@@ -36,27 +36,46 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initAuth() {
-    const loginScreen = document.getElementById("login-screen");
-    const wrapper = document.getElementById("wrapper");
+    const authLoading = document.getElementById("auth-loading");
     const token = sessionStorage.getItem("snmp_token");
 
     if (!token) {
-        loginScreen.style.display = "flex";
-        wrapper.style.display = "none";
+        // No token — hide loading overlay, show login
+        hideAuthLoading();
+        showLogin();
     } else {
+        // Token exists — validate it
         try {
             const res = await fetch('/api/settings/check');
             if (res.ok) {
                 const data = await res.json();
                 updateUserUI(data.user);
+                hideAuthLoading();
                 showApp();
             } else {
+                hideAuthLoading();
                 logout(false);
             }
         } catch (e) {
             console.error("Auth Check Failed", e);
-            logout(false); 
+            hideAuthLoading();
+            logout(false);
         }
+    }
+}
+
+// ==================== Auth Screen Helpers ====================
+
+function hideAuthLoading() {
+    const el = document.getElementById("auth-loading");
+    if (el) el.classList.add("d-none");
+}
+
+function showLogin() {
+    const el = document.getElementById("login-screen");
+    if (el) {
+        el.classList.remove("d-none");
+        el.classList.add("d-flex");
     }
 }
 
@@ -66,8 +85,8 @@ window.handleLogin = async function(e) {
     e.preventDefault();
     const user = document.getElementById("login-user").value;
     const pass = document.getElementById("login-pass").value;
-    const btn = document.getElementById("login-btn");
-    const err = document.getElementById("login-error");
+    const btn  = document.getElementById("login-btn");
+    const err  = document.getElementById("login-error");
 
     btn.disabled = true;
     err.classList.add("d-none");
@@ -84,7 +103,7 @@ window.handleLogin = async function(e) {
         if (res.ok) {
             sessionStorage.setItem("snmp_token", data.token);
             updateUserUI(data.username);
-            showApp(); 
+            showApp();
         } else {
             err.textContent = data.detail || "Login Failed";
             err.classList.remove("d-none");
@@ -101,13 +120,12 @@ window.handleLogin = async function(e) {
 
 function showApp() {
     const loginScreen = document.getElementById("login-screen");
-    const wrapper = document.getElementById("wrapper");
+    const wrapper     = document.getElementById("wrapper");
 
     if (loginScreen) {
-        loginScreen.classList.remove("d-flex"); 
-        loginScreen.style.display = "none";
+        loginScreen.classList.remove("d-flex");
+        loginScreen.classList.add("d-none");
     }
-
     if (wrapper) {
         wrapper.style.display = "flex";
     }
@@ -129,13 +147,12 @@ window.logout = async function(callApi = true) {
 
 function updateUserUI(username) {
     const el = document.getElementById("nav-user-name");
-    if(el) el.textContent = username;
+    if (el) el.textContent = username;
 }
 
 // ==================== Initialize App Logic ====================
 
 function initializeAppLogic() {
-    // Sidebar toggle
     const sidebarToggle = document.querySelector('#sidebarToggle');
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', e => {
@@ -144,103 +161,65 @@ function initializeAppLogic() {
         });
     }
 
-    // Load app metadata and check backend health
-    loadAppMetadata();
-    
-    // Check backend health periodically
-    setInterval(checkBackendHealth, 60000);
+    // Initial metadata + health check
+    updateBackendStatus();
 
-    // Handle routing
+    // Periodic health check every 60s
+    setInterval(updateBackendStatus, 60000);
+
+    // Routing
     window.addEventListener('hashchange', handleRouting);
-    handleRouting(); 
+    handleRouting();
 }
 
-// ==================== Load App Metadata ====================
+// ==================== Backend Status (deduplicated) ====================
+// Replaces separate loadAppMetadata() + checkBackendHealth() — same endpoint, same logic.
 
-async function loadAppMetadata() {
+async function updateBackendStatus() {
+    const badge     = document.getElementById("backend-status");
     const versionEl = document.getElementById("app-version");
-    const badge = document.getElementById("backend-status");
-    
+    const isFirstLoad = !window.AppMetadata;
+
     try {
-        const res = await fetch(`${API_BASE}/meta`);
+        const res  = await fetch(`${API_BASE}/meta`);
         const data = await res.json();
-        
+
         if (badge) {
-            badge.className = "badge bg-success";
+            badge.className   = "badge bg-success";
             badge.textContent = "Online";
         }
-        
-        if (versionEl) {
-            versionEl.textContent = `v${data.version}`;
-            versionEl.title = `${data.name} v${data.version}`;
-        }
-        
-        document.title = data.name;
-        
-        window.AppMetadata = {
-            name: data.name,
-            version: data.version,
-            author: data.author,
-            description: data.description
-        };
-        
-        console.log(`🔱 ${data.name} v${data.version} loaded successfully`);
-        
-    } catch (e) {
-        console.error("Failed to load app metadata:", e);
-        
-        if (badge) {
-            badge.className = "badge bg-danger";
-            badge.textContent = "Offline";
-        }
-        
-        if (versionEl) {
-            versionEl.textContent = "Offline";
-            versionEl.style.color = "#ef4444";
-            versionEl.title = "Backend is offline";
-        }
-    }
-}
 
-// ==================== Check Backend Health ====================
+        if (versionEl) {
+            versionEl.textContent      = `v${data.version}`;
+            versionEl.title            = `${data.name} v${data.version}`;
+            versionEl.style.color      = "";
+        }
 
-async function checkBackendHealth() {
-    const badge = document.getElementById("backend-status");
-    const versionEl = document.getElementById("app-version");
-    
-    try {
-        const res = await fetch(`${API_BASE}/meta`);
-        const data = await res.json();
-        
-        if (badge) {
-            badge.className = "badge bg-success";
-            badge.textContent = "Online";
-        }
-        
-        if (versionEl && versionEl.textContent !== `v${data.version}`) {
-            versionEl.textContent = `v${data.version}`;
-            versionEl.title = `${data.name} v${data.version}`;
-            // console.log(`🔄 Version updated to v${data.version}`);
-        }
-        
-        if (document.title !== data.name) {
+        if (isFirstLoad) {
             document.title = data.name;
+            window.AppMetadata = {
+                name:        data.name,
+                version:     data.version,
+                author:      data.author,
+                description: data.description
+            };
+            console.log(`🔱 ${data.name} v${data.version} loaded successfully`);
         }
-        
+
     } catch (e) {
-        if (badge && badge.classList.contains("bg-success")) {
-            console.error("Backend went offline:", e);
+        if (isFirstLoad || (badge && badge.classList.contains("bg-success"))) {
+            console.error("Backend offline:", e);
         }
-        
+
         if (badge) {
-            badge.className = "badge bg-danger";
+            badge.className   = "badge bg-danger";
             badge.textContent = "Offline";
         }
-        
-        if (versionEl && versionEl.textContent !== "Offline") {
+
+        if (versionEl) {
             versionEl.textContent = "Offline";
             versionEl.style.color = "#ef4444";
-            versionEl.title = "Backend is offline";
+            versionEl.title       = "Backend is offline";
         }
     }
 }
@@ -249,48 +228,48 @@ async function checkBackendHealth() {
 
 async function handleRouting() {
     let moduleName = window.location.hash.substring(1) || 'dashboard';
-    
+
     if (currentModule && typeof currentModule.destroy === 'function') {
         currentModule.destroy();
     }
-    
+
     document.querySelectorAll('.list-group-item').forEach(el => {
         el.classList.remove('active');
-        if(el.getAttribute('href') === `#${moduleName}`) el.classList.add('active');
+        if (el.getAttribute('href') === `#${moduleName}`) el.classList.add('active');
     });
 
     await loadModule(moduleName);
 }
 
-// ==================== Module Loading (NO CACHE) ====================
+// ==================== Module Loading ====================
 
 async function loadModule(moduleName) {
     const container = document.getElementById("main-content");
-    const title = document.getElementById("page-title");
+    const title     = document.getElementById("page-title");
 
     const titles = {
         'dashboard': 'Trishul SNMP',
         'simulator': 'SNMP Simulator',
-        'walker': 'Walk & Parse',
-        'traps': 'Trap Manager',
-        'browser': 'MIB Browser',
-        'mibs': 'MIB Manager',
-        'settings': 'Settings'
+        'walker':    'Walk & Parse',
+        'traps':     'Trap Manager',
+        'browser':   'MIB Browser',
+        'mibs':      'MIB Manager',
+        'settings':  'Settings'
     };
 
     title.textContent = titles[moduleName] || 'Trishul SNMP';
 
-    // Always fetch fresh HTML (no cache)
     try {
         container.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary"></div></div>';
-        
-        const res = await fetch(`${moduleName}.html`);
-        
+
+        // cache: 'no-store' ensures we never serve stale module HTML
+        const res = await fetch(`${moduleName}.html`, { cache: 'no-store' });
+
         if (!res.ok) throw new Error("Module not found");
-        
+
         const html = await res.text();
         container.innerHTML = html;
-        
+
     } catch (e) {
         container.innerHTML = `
             <div class="alert alert-danger">
@@ -301,20 +280,19 @@ async function loadModule(moduleName) {
         return;
     }
 
-    // Initialize module
     const moduleMap = {
         'dashboard': window.DashboardModule,
         'simulator': window.SimulatorModule,
-        'walker': window.WalkerModule,
-        'traps': window.TrapsModule,
-        'browser': window.BrowserModule,
-        'mibs': window.MibsModule,
-        'settings': window.SettingsModule
+        'walker':    window.WalkerModule,
+        'traps':     window.TrapsModule,
+        'browser':   window.BrowserModule,
+        'mibs':      window.MibsModule,
+        'settings':  window.SettingsModule
     };
 
     if (moduleMap[moduleName]) {
         currentModule = moduleMap[moduleName];
-        if(typeof currentModule.init === 'function') {
+        if (typeof currentModule.init === 'function') {
             currentModule.init();
         }
     }

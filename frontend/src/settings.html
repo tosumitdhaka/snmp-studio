@@ -1,66 +1,65 @@
-
 <div class="row justify-content-center">
     <div class="col-md-6 col-lg-5">
         <div class="card shadow-sm">
-            <div class="card-header">
+            <div class="card-header py-2">
                 <i class="fas fa-user-shield me-2 text-primary"></i> Authentication
             </div>
             <div class="card-body">
                 <p class="text-muted small">Update the login credentials for the application.</p>
                 <form onsubmit="SettingsModule.updateAuth(event)">
-                    <!-- Hidden Username for Current Password Association -->
-                    <input type="text" name="username" autocomplete="username" style="display:none;">
-                    
+                    <!-- Hidden username field for password manager association (visually hidden, not display:none) -->
+                    <input type="text" name="username" autocomplete="username" class="visually-hidden" aria-hidden="true">
+
                     <!-- Current Password -->
-                    <div class="mb-3 bg-light p-3 rounded border">
+                    <div class="mb-3 bg-light p-2 rounded border">
                         <label class="form-label small fw-bold text-muted">Current Password</label>
-                        <input type="password" 
-                               class="form-control" 
-                               id="set-auth-current-pass" 
+                        <input type="password"
+                               class="form-control form-control-sm"
+                               id="set-auth-current-pass"
                                name="current-password"
-                               placeholder="Required to make changes" 
-                               required 
+                               placeholder="Required to make changes"
+                               required
                                autocomplete="current-password">
                     </div>
-                    
-                    <hr>
-                    
+
+                    <hr class="my-2">
+
                     <!-- New Credentials -->
                     <div class="mb-3">
                         <label class="form-label small fw-bold">New Username</label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="set-auth-user" 
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               id="set-auth-user"
                                name="new-username"
-                               required 
+                               required
                                autocomplete="username">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">
+                        <label class="form-label small fw-bold d-flex align-items-center gap-2">
                             New Password
-                            <span id="password-strength" class="badge ms-2" style="display: none;"></span>
+                            <span id="password-strength" class="badge ms-1 d-none"></span>  <!-- was style="display:none" -->
                         </label>
-                        <input type="password" 
-                               class="form-control" 
-                               id="set-auth-pass" 
+                        <input type="password"
+                               class="form-control form-control-sm"
+                               id="set-auth-pass"
                                name="new-password"
-                               required 
+                               required
                                autocomplete="new-password">
-                        <div class="form-text small">At least 6 characters. Mix uppercase, lowercase, numbers, and symbols for stronger security.</div>
+                        <div class="form-text small">At least 6 characters. Mix uppercase, lowercase, numbers, and symbols.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Confirm Password</label>
-                        <input type="password" 
-                               class="form-control" 
-                               id="set-auth-pass-confirm" 
+                        <input type="password"
+                               class="form-control form-control-sm"
+                               id="set-auth-pass-confirm"
                                name="confirm-password"
-                               required 
+                               required
                                autocomplete="new-password">
                     </div>
-                    
+
                     <div id="auth-msg" class="alert d-none small py-2 mb-3"></div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-sm btn-primary">
                             <i class="fas fa-save"></i> Update Credentials
                         </button>
                     </div>
