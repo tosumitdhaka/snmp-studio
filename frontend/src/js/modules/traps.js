@@ -28,7 +28,7 @@ window.TrapsModule = {
                 
                 document.getElementById('ts-oid').value = trap.full_name || trap.oid;
                 document.getElementById('vb-container').innerHTML = 
-                    '<div class="text-center text-muted small py-2" id="vb-empty" style="display:none;"></div>';
+                    '<div class="text-center text-muted small py-2 d-none" id="vb-empty"></div>';
                 
                 this.addVarbind("SNMPv2-MIB::sysUpTime.0", "TimeTicks", "12345");
                 
@@ -153,7 +153,7 @@ window.TrapsModule = {
         document.getElementById('ts-oid').value = trap.full_name;
         
         document.getElementById('vb-container').innerHTML = 
-            '<div class="text-center text-muted small py-2" id="vb-empty" style="display:none;"></div>';
+            '<div class="text-center text-muted small py-2 d-none" id="vb-empty"></div>';
         
         this.addVarbind("SNMPv2-MIB::sysUpTime.0", "TimeTicks", "12345");
         
@@ -325,7 +325,7 @@ window.TrapsModule = {
     addVarbind: function(oid="", type="String", val="") {
         const container = document.getElementById("vb-container");
         const emptyMsg = document.getElementById("vb-empty");
-        if (emptyMsg) emptyMsg.style.display = "none";
+        if (emptyMsg) emptyMsg.classList.add('d-none');
         
         const id = `vb-row-${this.vbCount++}`;
         const html = `
@@ -355,7 +355,7 @@ window.TrapsModule = {
     },
 
     resetForm: function() {
-        document.getElementById("vb-container").innerHTML = '<div class="text-center text-muted small py-2" id="vb-empty">No VarBinds added</div>';
+        document.getElementById("vb-container").innerHTML = '<div class="text-center text-muted small py-2 d-none" id="vb-empty">No VarBinds added</div>';
         document.getElementById("ts-oid").value = "IF-MIB::linkDown";
         
         const select = document.getElementById("ts-trap-select");
@@ -493,14 +493,14 @@ window.TrapsModule = {
             if (detail) {
                 detail.textContent = `Port ${status.port || '--'} | ${status.resolve_mibs ? 'Resolved' : 'Raw'}`;
             }
-            if (metricsPanel) metricsPanel.style.display = 'block';
+            if (metricsPanel) metricsPanel.classList.remove('d-none');
             btnStart.disabled = true;
             btnStop.disabled = false;
         } else {
             badge.className = "badge bg-secondary";
             badge.textContent = "STOPPED";
             if (detail) detail.textContent = "";
-            if (metricsPanel) metricsPanel.style.display = 'none';
+            if (metricsPanel) metricsPanel.classList.add('d-none');
             btnStart.disabled = false;
             btnStop.disabled = true;
         }
