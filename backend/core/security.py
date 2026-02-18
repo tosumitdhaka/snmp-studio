@@ -4,6 +4,7 @@ import os
 import secrets
 import uuid
 from datetime import datetime
+from typing import Optional
 from fastapi import HTTPException, status, Header
 from core.config import settings
 
@@ -71,11 +72,13 @@ def save_credentials(username: str, password: str) -> None:
 # Auth logic
 # ---------------------------------------------------------------------------
 
-def login_user(username: str, password: str) -> str | None:
+def login_user(username: str, password: str) -> Optional[str]:
     """
     Validate credentials and issue a session token.
     Transparently migrates legacy plaintext passwords to hashed format
     on first successful login.
+
+    Returns token string on success, None on failure.
     """
     stored = get_stored_credentials()
 
@@ -103,7 +106,7 @@ def logout_user(token: str) -> None:
 # FastAPI dependency
 # ---------------------------------------------------------------------------
 
-def validate_auth(x_auth_token: str = Header(None)) -> str:
+def validate_auth(x_auth_token: Optional[str] = Header(None)) -> str:
     """
     Validate session token and enforce SESSION_TIMEOUT.  (BUG-5)
     Returns the authenticated username.
