@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **WebSocket** - Server-push backend: `/api/ws` (token auth), `full_state` snapshot on connect, ping/pong keepalive.
 - **WebSocket** - UDP loopback IPC (`127.0.0.1:WS_INTERNAL_PORT`, default `19876`) so worker trap events can be pushed without Redis/shared memory.
-- **Docs** - WebSocket API reference (`docs/websocket.md`): message types, connection flow, keepalive, and test commands.
 - **Core/Config** - `WS_INTERNAL_PORT`, `AUTO_START_SIMULATOR`, `AUTO_START_TRAP_RECEIVER` settings; `APP_AUTHOR` / `APP_DESCRIPTION` now read from env.
 - **Stats** - Global file-backed stats store + `/api/stats/` endpoints (aggregate + per-module + reset).
 
