@@ -266,7 +266,7 @@ window.TrapsModule = {
                 <td><span class="badge bg-secondary small">${obj.module}</span></td>
                 <td><span class="small">${obj.syntax}</span></td>
                 <td>
-                    <button class="btn btn-xs btn-primary" onclick="TrapsModule.addVarbindFromPicker('${obj.full_name}', '${obj.syntax}')">
+                    <button type="button" class="btn btn-xs btn-primary" onclick="TrapsModule.addVarbindFromPicker('${obj.full_name}', '${obj.syntax}')">
                         <i class="fas fa-plus"></i>
                     </button>
                 </td>
@@ -671,6 +671,9 @@ window.TrapsModule = {
                 ? varbindsJson.substring(0, 100) + '...' 
                 : varbindsJson;
             
+            // NOTE: All buttons MUST have type="button" explicitly.
+            // Default <button> type is "submit" which would trigger the Send Trap
+            // <form onsubmit=...> and navigate the SPA back to the dashboard.
             return `
                 <tr>
                     <td class="small text-muted">${t.time_str}</td>
@@ -679,16 +682,24 @@ window.TrapsModule = {
                         <span class="badge ${trapBadgeClass}">${trapType}</span>
                     </td>
                     <td>
-                        <code class="small" style="cursor: pointer;" onclick="TrapsModule.showTrapDetails(${idx})" title="Click to view full JSON">
+                        <code class="small" style="cursor: pointer;"
+                              onclick="TrapsModule.showTrapDetails(${idx})"
+                              title="Click to view full JSON">
                             ${varbindsPreview}
                         </code>
                     </td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" onclick="TrapsModule.copyTrap(${idx})" title="Copy JSON">
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-1 me-1"
+                                onclick="TrapsModule.copyTrap(${idx})" title="Copy JSON">
                             <i class="fas fa-copy"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-success py-0 px-1" onclick="TrapsModule.downloadTrap(${idx})" title="Download">
+                        <button type="button" class="btn btn-sm btn-outline-success py-0 px-1 me-1"
+                                onclick="TrapsModule.downloadTrap(${idx})" title="Download">
                             <i class="fas fa-download"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1"
+                                onclick="TrapsModule.deleteTrap(${idx})" title="Delete">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </td>
                 </tr>
@@ -718,19 +729,40 @@ window.TrapsModule = {
         return simplified;
     },
 
-    // ==================== Trap Detail Modal ====================
+    // ==================== Per-row Delete ====================
 
     /**
-     * BUG FIX: Copy button in modal was broken.
-     *
-     * Old approach: injected raw JSON into onclick="...writeText(`${json}`)..."
-     * Problem: JSON contains double-quotes (") that broke the HTML attribute
-     * boundary, causing a silent parse error — the onclick never fired.
-     *
-     * New approach: store the JSON string in TrapsModule._modalJson[id],
-     * then call TrapsModule.copyModalJson(id) from the onclick attribute.
-     * No raw JSON is ever embedded inside an HTML attribute.
+     * Delete a single trap from the received list by its rendered index.
+     * Works for both the full list and the filtered view:
+     * - If a filter is active, removes from receivedTraps by matching the
+     *   filtered item, then clears filteredTraps so it is rebuilt on next
+     *   filterTraps() call (avoids stale index references).
+     * - If no filter, removes directly by index from receivedTraps.
+     * Re-persists, re-renders, and updates metrics after removal.
      */
+    deleteTrap: function(idx) {
+        if (this.filteredTraps.length > 0) {
+            // Remove from master list by reference equality
+            const target = this.filteredTraps[idx];
+            this.receivedTraps = this.receivedTraps.filter(t => t !== target);
+            // Rebuild filtered list from updated master
+            const searchInput = document.getElementById('tr-search');
+            const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            this.filteredTraps = searchTerm
+                ? this.receivedTraps.filter(t => JSON.stringify(t).toLowerCase().includes(searchTerm))
+                : [];
+        } else {
+            this.receivedTraps.splice(idx, 1);
+        }
+        
+        this.persistTraps();
+        this.renderTraps();
+        this.updateMetrics();
+        this.showNotification('Trap deleted', 'info');
+    },
+
+    // ==================== Trap Detail Modal ====================
+
     copyModalJson: function(modalId) {
         const json = this._modalJson[modalId];
         if (!json) return;
@@ -755,8 +787,6 @@ window.TrapsModule = {
         };
         
         const json = JSON.stringify(displayTrap, null, 2);
-
-        // Unique ID so the copy helper can look up the JSON safely
         const modalId = `trap-detail-modal-${Date.now()}`;
         this._modalJson[modalId] = json;
         
@@ -771,14 +801,16 @@ window.TrapsModule = {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <pre class="bg-dark text-light p-3 rounded" style="max-height: 500px; overflow-y: auto;">${json.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                        <pre class="bg-dark text-light p-3 rounded"
+                             style="max-height: 500px; overflow-y: auto;">${json.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-sm btn-primary py-1 px-2"
+                        <button type="button" class="btn btn-sm btn-primary py-1 px-2"
                                 onclick="TrapsModule.copyModalJson('${modalId}')">
                             <i class="fas fa-copy"></i> Copy
                         </button>
-                        <button class="btn btn-sm btn-secondary py-1 px-2" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-sm btn-secondary py-1 px-2"
+                                data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
@@ -788,7 +820,7 @@ window.TrapsModule = {
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
         modal.addEventListener('hidden.bs.modal', () => {
-            delete this._modalJson[modalId];   // clean up stored JSON
+            delete this._modalJson[modalId];
             modal.remove();
         });
     },
@@ -808,8 +840,9 @@ window.TrapsModule = {
         };
         
         const json = JSON.stringify(displayTrap, null, 2);
-        navigator.clipboard.writeText(json);
-        this.showNotification('Trap copied to clipboard', 'success');
+        navigator.clipboard.writeText(json)
+            .then(() => this.showNotification('Trap copied to clipboard', 'success'))
+            .catch(() => this.showNotification('Copy failed — check clipboard permissions', 'error'));
     },
 
     downloadTrap: function(idx) {

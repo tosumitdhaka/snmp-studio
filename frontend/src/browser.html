@@ -5,14 +5,14 @@
         <div class="card shadow-sm mb-3">
             <div class="card-body p-3">
 
-                <!-- View Toggle (Moved to Top) -->
+                <!-- View Toggle -->
                 <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                     <div class="btn-group btn-group-sm" role="group">
-                        <button class="btn btn-primary" id="btn-view-module" 
+                        <button class="btn btn-primary" id="btn-view-module"
                                 onclick="BrowserModule.switchView('module')">
                             <i class="fas fa-book"></i> By Module
                         </button>
-                        <button class="btn btn-outline-secondary" id="btn-view-oid" 
+                        <button class="btn btn-outline-secondary" id="btn-view-oid"
                                 onclick="BrowserModule.switchView('oid')">
                             <i class="fas fa-sitemap"></i> By OID
                         </button>
@@ -21,20 +21,24 @@
                 </div>
 
                 <!-- Search Input -->
-                <!-- BUG FIX: was style="display:none" on clear button —
-                     debounceSearch()/restoreState() use classList so inline
-                     style was always winning. Changed to d-none class. -->
+                <!-- BUG FIX: Clear button is now always visible.
+                     Previous approach toggled d-none via JS but the
+                     browserSearchOid path in init() never called that toggle,
+                     so the icon stayed hidden after navigating from another page.
+                     Always-visible is simpler and avoids all edge-case paths. -->
                 <div class="mb-3" id="search-section">
                     <div class="input-group">
                         <span class="input-group-text bg-white">
                             <i class="fas fa-search text-muted"></i>
                         </span>
-                        <input type="text" id="browser-search-input" class="form-control" 
-                            placeholder="Search OIDs, modules, or descriptions..." 
-                            onkeyup="BrowserModule.debounceSearch()">
-                        <button class="btn btn-outline-secondary d-none"
-                                onclick="BrowserModule.clearSearch()" 
-                                id="btn-clear-search">
+                        <input type="text" id="browser-search-input" class="form-control"
+                               placeholder="Search OIDs, modules, or descriptions..."
+                               onkeyup="BrowserModule.debounceSearch()">
+                        <button class="btn btn-outline-secondary"
+                                type="button"
+                                onclick="BrowserModule.clearSearch()"
+                                id="btn-clear-search"
+                                title="Clear search">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -43,19 +47,19 @@
                     </div>
                 </div>
 
-                <!-- Filters Row (Only for Module View) -->
+                <!-- Filters Row (Module View only) -->
                 <div id="filters-section">
                     <div class="row g-2 mb-2">
                         <div class="col-md-5">
                             <label class="form-label small fw-bold mb-1">Module</label>
-                            <select id="browser-module-filter" class="form-select form-select-sm" 
+                            <select id="browser-module-filter" class="form-select form-select-sm"
                                     onchange="BrowserModule.applyFilters()">
                                 <option value="">All Modules</option>
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold mb-1">Type</label>
-                            <select id="browser-type-filter" class="form-select form-select-sm" 
+                            <select id="browser-type-filter" class="form-select form-select-sm"
                                     onchange="BrowserModule.applyFilters()">
                                 <option value="">All Types</option>
                                 <option value="MibScalar">Scalars</option>
@@ -65,7 +69,7 @@
                             </select>
                         </div>
                         <div class="col-md-3 d-flex align-items-end">
-                            <button class="btn btn-sm btn-outline-secondary w-100" 
+                            <button class="btn btn-sm btn-outline-secondary w-100"
                                     onclick="BrowserModule.clearFilters()">
                                 <i class="fas fa-eraser"></i> Clear
                             </button>
@@ -77,16 +81,14 @@
 
         <!-- Tree Card -->
         <div class="card shadow-sm">
-            <!-- Tree Card Header -->
             <div class="card-header py-2 bg-light d-flex justify-content-between align-items-center">
                 <span>
-                    <i class="fas fa-sitemap me-2 text-primary"></i> 
+                    <i class="fas fa-sitemap me-2 text-primary"></i>
                     <span id="browser-tree-title">MIB Tree</span>
                 </span>
-                <!-- Collapse/Expand Controls -->
                 <div class="d-flex align-items-center gap-2" id="tree-controls">
                     <span class="small text-muted">Depth:</span>
-                    <select class="form-select form-select-sm" id="expand-depth-select" 
+                    <select class="form-select form-select-sm" id="expand-depth-select"
                             style="width: 60px; font-size: 0.75rem;">
                         <option value="1">1</option>
                         <option value="2">2</option>
@@ -94,14 +96,13 @@
                         <option value="4">4</option>
                         <option value="5">5</option>
                     </select>
-                    
                     <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-success btn-sm" 
-                                onclick="BrowserModule.expandToSelectedDepth()" 
+                        <button class="btn btn-outline-success btn-sm"
+                                onclick="BrowserModule.expandToSelectedDepth()"
                                 id="btn-expand">
                             <i class="fas fa-plus-square me-1"></i> Expand
                         </button>
-                        <button class="btn btn-outline-secondary btn-sm" 
+                        <button class="btn btn-outline-secondary btn-sm"
                                 onclick="BrowserModule.collapseAll()">
                             <i class="fas fa-minus-square me-1"></i> Collapse
                         </button>
@@ -109,8 +110,8 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                <!-- Tree Container -->
-                <div id="browser-tree-container" style="max-height: 550px; overflow-y: auto; overflow-x: auto;">
+                <div id="browser-tree-container"
+                     style="max-height: 550px; overflow-y: auto; overflow-x: auto;">
                     <div class="text-center text-muted p-3">Loading tree...</div>
                 </div>
             </div>
@@ -123,7 +124,8 @@
             <div class="card-header py-2 bg-light">
                 <i class="fas fa-info-circle me-2 text-info"></i> Details
             </div>
-            <div class="card-body" id="browser-details-panel" style="max-height: 650px; overflow-y: auto;">
+            <div class="card-body" id="browser-details-panel"
+                 style="max-height: 650px; overflow-y: auto;">
                 <div class="text-center text-muted p-5">
                     <i class="fas fa-mouse-pointer fa-3x mb-3 text-muted"></i>
                     <p class="small">Select an OID from the tree to view details</p>
