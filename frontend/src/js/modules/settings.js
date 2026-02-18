@@ -22,7 +22,12 @@ window.SettingsModule = {
         
         strengthEl.textContent = labels[strength];
         strengthEl.className = `badge bg-${colors[strength]} ms-2`;
-        strengthEl.style.display = password.length > 0 ? 'inline-block' : 'none';
+        
+        if (password.length > 0) {
+            strengthEl.classList.remove('d-none');
+        } else {
+            strengthEl.classList.add('d-none');
+        }
     },
 
     updateAuth: async function(e) {
