@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 # 1. Fix Debian Sources to allow non-free (Required for Standard MIBs)
 # This handles both old (sources.list) and new (debian.sources) formats
