@@ -1,7 +1,22 @@
+"""
+workers/trap_receiver.py
+~~~~~~~~~~~~~~~~~~~~~~~~
+SNMP trap receiver worker process.
+
+Phase-9 addition: after writing each trap to the JSONL file,
+send a compact UDP datagram to 127.0.0.1:WS_INTERNAL_PORT so the
+main FastAPI process can broadcast a real-time {type:"trap"} push
+to all connected WebSocket clients.
+
+If the UDP send fails (e.g. main process not yet ready), it is
+silently ignored -- the trap is always written to disk regardless.
+"""
+
 import argparse
 import json
 import logging
 import os
+import socket
 import sys
 import time
 import asyncio
@@ -11,7 +26,6 @@ from pysnmp.entity import engine, config
 from pysnmp.entity.rfc3413 import ntfrcv
 from pysnmp.carrier.asyncio.dgram import udp
 
-# Option B: reconstruct stats path via settings (worker already imports app modules)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.config import settings
 from core.stats_store import worker_increment
@@ -23,12 +37,17 @@ logger = logging.getLogger("trap_receiver")
 
 
 class TrapReceiver:
-    def __init__(self, port, community, mib_dir, output_file, resolve_mibs=True):
+    def __init__(self, port, community, mib_dir, output_file,
+                 resolve_mibs=True, ws_port=19876):
         self.port        = port
         self.community   = community
         self.mib_dir     = mib_dir
         self.output_file = output_file
         self.resolve_mibs = resolve_mibs
+        self.ws_port     = ws_port          # UDP loopback port for WS push
+
+        # Reusable UDP socket for WS side-channel
+        self._udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         self.snmp_engine = engine.SnmpEngine()
 
@@ -72,8 +91,24 @@ class TrapReceiver:
                 return trap_oid
         return "Unknown"
 
-    def _callback(self, snmpEngine, stateReference, contextEngineId, contextName, varBinds, cbCtx):
-        transportDomain, transportAddress = snmpEngine.message_dispatcher.get_transport_info(stateReference)
+    def _send_ws_datagram(self, trap_record: dict) -> None:
+        """
+        Send a {type:"trap"} datagram to the main process UDP listener.
+        Always fire-and-forget: trap is already on disk before this is called.
+        """
+        try:
+            payload = json.dumps({
+                "type": "trap",
+                "trap": trap_record
+            }).encode("utf-8")
+            self._udp_sock.sendto(payload, ("127.0.0.1", self.ws_port))
+        except Exception as e:
+            logger.debug(f"[WS-UDP] send failed (non-fatal): {e}")
+
+    def _callback(self, snmpEngine, stateReference, contextEngineId,
+                  contextName, varBinds, cbCtx):
+        transportDomain, transportAddress = \
+            snmpEngine.message_dispatcher.get_transport_info(stateReference)
 
         trap_record = {
             "timestamp": time.time(),
@@ -102,10 +137,14 @@ class TrapReceiver:
                 f.flush()
             logger.info(f"\u2713 Trap received: {trap_record['trap_type']} from {trap_record['source']}")
         except Exception as e:
-            logger.error(f"Write Error: {e}")
+            logger.error(f"Write error: {e}")
+            return   # don't send WS datagram if disk write failed
 
-        # Persist cumulative trap count
+        # Persist cumulative stats
         worker_increment(STATS_FILE, "traps", "traps_received_total", 1)
+
+        # Phase-9: notify main process via UDP loopback
+        self._send_ws_datagram(trap_record)
 
     async def run(self):
         config.add_transport(
@@ -115,7 +154,9 @@ class TrapReceiver:
         )
         config.add_v1_system(self.snmp_engine, 'my-area', self.community)
         ntfrcv.NotificationReceiver(self.snmp_engine, self._callback)
-        logger.info(f"\U0001f3a7 Trap Receiver listening on UDP {self.port} (Resolution: {'ON' if self.resolve_mibs else 'OFF'})")
+        logger.info(f"\U0001f3a7 Trap Receiver listening on UDP {self.port} "
+                    f"(MIB resolution: {'ON' if self.resolve_mibs else 'OFF'}) "
+                    f"WS-UDP port: {self.ws_port}")
         while True:
             await asyncio.sleep(1)
 
@@ -126,13 +167,19 @@ if __name__ == "__main__":
     parser.add_argument("--community",    type=str, default="public")
     parser.add_argument("--mib-path",     type=str, required=True)
     parser.add_argument("--output",       type=str, required=True)
-    parser.add_argument("--resolve-mibs", type=str, default="true", choices=["true", "false"])
+    parser.add_argument("--resolve-mibs", type=str, default="true",
+                        choices=["true", "false"])
+    parser.add_argument("--ws-port",      type=int, default=19876,
+                        help="UDP loopback port for WebSocket push side-channel")
     args = parser.parse_args()
 
     resolve = args.resolve_mibs.lower() == "true"
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
 
-    receiver = TrapReceiver(args.port, args.community, args.mib_path, args.output, resolve)
+    receiver = TrapReceiver(
+        args.port, args.community, args.mib_path, args.output,
+        resolve_mibs=resolve, ws_port=args.ws_port
+    )
     try:
         asyncio.run(receiver.run())
     except KeyboardInterrupt:

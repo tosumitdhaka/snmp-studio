@@ -2,12 +2,15 @@
 services/trap_manager.py
 ~~~~~~~~~~~~~~~~~~~~~~~~
 Manages the trap_receiver subprocess lifecycle.
+WebSocket clients are notified on every lifecycle change.
 
-Bug fixes:
-  BUG-9  : get_status() now uses self._port instead of hardcoded 1162
+Bug fixes applied:
+  BUG-9  : get_status() uses self._port instead of hardcoded 1162
   BUG-10 : clear_traps() uses context manager (no file handle leak)
+  Phase-9: broadcast status after start / stop
 """
 
+import asyncio
 import os
 import sys
 import json
@@ -33,6 +36,34 @@ class TrapManager:
 
         os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
 
+    # -----------------------------------------------------------------------
+    # Internal helpers
+    # -----------------------------------------------------------------------
+
+    def _try_broadcast_status(self) -> None:
+        """
+        Fire-and-forget WS status broadcast.
+        Safe to call from sync code: schedules a coroutine on the running
+        event loop without blocking.
+        """
+        try:
+            from core.ws_manager import manager
+            from services.sim_manager import SimulatorManager
+            payload = {
+                "type":      "status",
+                "simulator": SimulatorManager.status(),
+                "traps":     self.get_status(),
+            }
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.ensure_future(manager.broadcast(payload))
+        except Exception as e:
+            logger.debug(f"[WS] trap_manager broadcast failed: {e}")
+
+    # -----------------------------------------------------------------------
+    # Public API
+    # -----------------------------------------------------------------------
+
     def start(self, port: int = None, community: str = None, resolve_mibs: bool = True):
         if self.process and self.process.poll() is None:
             return {"status": "already_running", "pid": self.process.pid}
@@ -45,11 +76,12 @@ class TrapManager:
 
         cmd = [
             sys.executable, "workers/trap_receiver.py",
-            "--port",         str(self._port),
-            "--community",    self._community,
-            "--mib-path",     self.mib_path,
-            "--output",       self.log_file,
-            "--resolve-mibs", "true" if resolve_mibs else "false",
+            "--port",          str(self._port),
+            "--community",     self._community,
+            "--mib-path",      self.mib_path,
+            "--output",        self.log_file,
+            "--resolve-mibs",  "true" if resolve_mibs else "false",
+            "--ws-port",       str(settings.WS_INTERNAL_PORT),
         ]
 
         self.process = subprocess.Popen(
@@ -62,6 +94,8 @@ class TrapManager:
         self._start_time = datetime.now(timezone.utc)
         stats_store.increment("traps", "receiver_start_count")
         logger.info(f"Trap receiver started: pid={self.process.pid} port={self._port}")
+
+        self._try_broadcast_status()
         return {"status": "started", "pid": self.process.pid, "port": self._port, "resolve_mibs": resolve_mibs}
 
     def stop(self):
@@ -75,7 +109,6 @@ class TrapManager:
 
             self.process = None
 
-            # BUG-9 fix + run-seconds tracking
             elapsed = 0
             if self._start_time:
                 elapsed = int((datetime.now(timezone.utc) - self._start_time).total_seconds())
@@ -86,6 +119,8 @@ class TrapManager:
                 "receiver_stop_count":  s["traps"]["receiver_stop_count"] + 1,
                 "receiver_run_seconds": s["traps"]["receiver_run_seconds"] + elapsed,
             })
+
+            self._try_broadcast_status()
             return {"status": "stopped"}
         return {"status": "not_running"}
 
@@ -94,7 +129,7 @@ class TrapManager:
         return {
             "running":      running,
             "pid":          self.process.pid if running else None,
-            "port":         self._port,           # BUG-9: use stored port, not hardcoded 1162
+            "port":         self._port,
             "resolve_mibs": self.resolve_mibs if running else None,
         }
 
@@ -103,7 +138,7 @@ class TrapManager:
         if not os.path.exists(self.log_file):
             return []
         try:
-            with open(self.log_file, 'r') as f:   # BUG-10: already a context manager
+            with open(self.log_file, 'r') as f:
                 lines = f.readlines()
             for line in reversed(lines[-limit:]):
                 if line.strip():
@@ -116,7 +151,6 @@ class TrapManager:
         return data
 
     def clear_traps(self):
-        # BUG-10: use context manager — no file handle leak
         with open(self.log_file, 'w'):
             pass
         stats_store.increment("traps", "traps_cleared_count")

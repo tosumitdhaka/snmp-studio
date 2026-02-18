@@ -3,12 +3,13 @@ api/routers/simulator.py
 ~~~~~~~~~~~~~~~~~~~~~~~~
 Simulator lifecycle endpoints + custom data management.
 Stats are persisted to stats.json via stats_store.
+WebSocket clients are notified on every lifecycle change.
 
-Fixes in this version:
+Fixes:
   BUG-8  : restart() preserves saved port/community (via sim_manager)
   BUG-12 : single restart code path
-  Part-B : _restart_simulator_with_stats() shared helper — used by this
-           router AND mibs.py so indirect restarts are always tracked
+  Part-B : _restart_simulator_with_stats() shared helper
+  Phase-9: broadcast status + stats after start/stop/restart
 """
 
 import os
@@ -32,11 +33,6 @@ class SimConfig(BaseModel):
     community: Optional[str] = None
 
 
-# ---------------------------------------------------------------------------
-# Module-level start-time tracker
-# In-memory only — resets on container restart.
-# Used exclusively for delta calculation of simulator_run_seconds.
-# ---------------------------------------------------------------------------
 _sim_start_time: Optional[datetime] = None
 
 
@@ -60,21 +56,47 @@ def _record_stop_stats() -> None:
     })
 
 
+async def _broadcast_status() -> None:
+    """Push current simulator+trap status to all WS clients."""
+    try:
+        from core.ws_manager import manager
+        from services.trap_manager import trap_manager
+        await manager.broadcast({
+            "type":      "status",
+            "simulator": SimulatorManager.status(),
+            "traps":     trap_manager.get_status(),
+        })
+    except Exception as e:
+        logger.debug(f"[WS] broadcast_status failed: {e}")
+
+
+async def _broadcast_stats() -> None:
+    """Push current stats snapshot to all WS clients."""
+    try:
+        from core.ws_manager import manager
+        await manager.broadcast({
+            "type": "stats",
+            "data": stats_store.load(),
+        })
+    except Exception as e:
+        logger.debug(f"[WS] broadcast_stats failed: {e}")
+
+
 def _restart_simulator_with_stats() -> dict:
     """
-    Part B: shared restart helper used by:
-      - POST /simulator/restart  (endpoint)
-      - POST /simulator/data     (conditional restart after data update)
-      - POST /mibs/reload        (conditional restart after MIB reload)
-
-    Ensures _sim_start_time and restart_count are always updated regardless
-    of which code path triggers the restart.
+    Shared restart helper. Used by:
+      - POST /simulator/restart
+      - POST /simulator/data  (conditional restart)
+      - POST /mibs/reload     (conditional restart)
+    Ensures _sim_start_time and restart_count are always updated
+    regardless of which code path triggers the restart.
+    Note: WS broadcast is done by the caller (async context required).
     """
-    _record_stop_stats()          # stop leg: accumulate run time
+    _record_stop_stats()
     time.sleep(0.5)
     result = SimulatorManager.restart()
     if result.get("status") == "started":
-        set_sim_start_time()      # start leg: seed new start time
+        set_sim_start_time()
         stats_store.increment("simulator", "restart_count")
     return result
 
@@ -95,7 +117,7 @@ def get_status():
 
 
 @router.post("/start")
-def start_simulator(config: SimConfig = None):
+async def start_simulator(config: SimConfig = None):
     global _sim_start_time
     p = config.port      if config else None
     c = config.community if config else None
@@ -114,6 +136,8 @@ def start_simulator(config: SimConfig = None):
     if result.get("status") == "started":
         set_sim_start_time()
         stats_store.increment("simulator", "start_count")
+        await _broadcast_status()
+        await _broadcast_stats()
         return {
             "status":    "started",
             "message":   "Simulator started successfully",
@@ -125,17 +149,21 @@ def start_simulator(config: SimConfig = None):
 
 
 @router.post("/stop")
-def stop_simulator():
+async def stop_simulator():
     result = SimulatorManager.stop()
     if result.get("status") == "stopped":
         _record_stop_stats()
+        await _broadcast_status()
+        await _broadcast_stats()
         return {"status": "stopped", "message": "Simulator stopped successfully"}
     return result
 
 
 @router.post("/restart")
-def restart_simulator():
+async def restart_simulator():
     result = _restart_simulator_with_stats()
+    await _broadcast_status()
+    await _broadcast_stats()
     if result.get("status") == "started":
         return {
             "status":    "restarted",
@@ -160,7 +188,7 @@ def get_custom_data():
 
 
 @router.post("/data")
-def update_custom_data(data: dict):
+async def update_custom_data(data: dict):
     """Save custom OID data. If simulator is running, restart it with stats tracking."""
     try:
         os.makedirs(settings.CUSTOM_DATA_FILE.parent, exist_ok=True)
@@ -168,8 +196,9 @@ def update_custom_data(data: dict):
             json.dump(data, f, indent=2)
 
         if SimulatorManager.status().get("running"):
-            # Part B fix: use shared helper so restart_count + run_seconds are tracked
             _restart_simulator_with_stats()
+            await _broadcast_status()
+            await _broadcast_stats()
             msg = "Data saved and simulator restarted"
         else:
             msg = "Data saved (simulator is currently stopped)"

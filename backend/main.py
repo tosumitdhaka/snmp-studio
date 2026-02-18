@@ -8,29 +8,33 @@ from core.security import validate_auth
 from core.log_config import setup_logging
 from core.config import meta, settings
 from core import stats_store
-from api.routers import simulator, walker, settings as settings_router, traps, mibs, browser, stats
+from api.routers import simulator, walker, settings as settings_router, traps, mibs, browser, stats, ws
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Lifespan — auto-start simulator + trap receiver on boot  (Part A)
+# Lifespan
 # ---------------------------------------------------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: conditionally auto-start simulator and trap receiver."""
     from services.sim_manager import SimulatorManager
     from services.trap_manager import trap_manager
     from api.routers.simulator import set_sim_start_time
+    from core.ws_manager import start_udp_listener, stop_udp_listener
+
+    # Start WebSocket UDP side-channel listener FIRST
+    # (trap_receiver worker may start sending datagrams immediately)
+    await start_udp_listener(settings.WS_INTERNAL_PORT)
 
     if settings.AUTO_START_SIMULATOR:
         try:
             result = SimulatorManager.start()
             logger.info(f"Auto-start simulator: {result['status']}")
             if result.get("status") == "started":
-                set_sim_start_time()             # seed run-seconds tracker
+                set_sim_start_time()
                 stats_store.increment("simulator", "start_count")
         except Exception as e:
             logger.error(f"Auto-start simulator failed: {e}")
@@ -42,8 +46,9 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error(f"Auto-start trap receiver failed: {e}")
 
-    yield  # application runs
-    # Graceful shutdown — stop subprocesses so they don't become orphans
+    yield
+
+    # Graceful shutdown
     try:
         SimulatorManager.stop()
         logger.info("Shutdown: simulator stopped")
@@ -54,6 +59,7 @@ async def lifespan(app: FastAPI):
         logger.info("Shutdown: trap receiver stopped")
     except Exception:
         pass
+    await stop_udp_listener()
 
 
 # ---------------------------------------------------------------------------
@@ -62,9 +68,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=meta.NAME, version=meta.VERSION, lifespan=lifespan)
 
-# ---------------------------------------------------------------------------
-# CORS  (BUG-16: explicit origins, no wildcard + credentials)
-# ---------------------------------------------------------------------------
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8080").split(",")
 
 app.add_middleware(
@@ -97,7 +100,6 @@ def health_check():
 
 # ---------------------------------------------------------------------------
 # Routers
-# NOTE: files.py router intentionally NOT registered — deprecated (Phase 3).
 # ---------------------------------------------------------------------------
 app.include_router(simulator.router,        prefix="/api", dependencies=[Depends(validate_auth)])
 app.include_router(walker.router,           prefix="/api", dependencies=[Depends(validate_auth)])
@@ -105,7 +107,10 @@ app.include_router(traps.router,            prefix="/api", dependencies=[Depends
 app.include_router(browser.router,          prefix="/api", dependencies=[Depends(validate_auth)])
 app.include_router(mibs.router,             prefix="/api", dependencies=[Depends(validate_auth)])
 app.include_router(stats.router,            prefix="/api", dependencies=[Depends(validate_auth)])
-app.include_router(settings_router.router,  prefix="/api")  # public: login lives here
+app.include_router(settings_router.router,  prefix="/api")   # public: login lives here
+# WebSocket endpoint — auth via ?token= query param (not header)
+# Do NOT add validate_auth dependency here — WS handshake doesn't support headers
+app.include_router(ws.router)
 
 
 if __name__ == "__main__":

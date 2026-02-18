@@ -25,28 +25,30 @@ class Settings:
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     LOG_FILE  = LOG_DIR / "app.log"
 
-    # Application metadata  (E1 fix: all read from env, not hardcoded)
+    # Application metadata
     APP_NAME        = os.getenv("APP_NAME",        "Trishul SNMP Studio")
     APP_VERSION     = os.getenv("APP_VERSION",     "1.2.3")
     APP_AUTHOR      = os.getenv("APP_AUTHOR",      "Sumit Dhaka")
     APP_DESCRIPTION = os.getenv("APP_DESCRIPTION", "Network Management & SNMP Utilities")
 
     # Security
-    SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "3600"))  # seconds
+    SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "3600"))
 
-    # Auto-start flags (Part A)
-    # Set to false in .env to disable auto-start on container boot
+    # Auto-start flags
     AUTO_START_SIMULATOR     = os.getenv("AUTO_START_SIMULATOR",     "true").lower() == "true"
     AUTO_START_TRAP_RECEIVER = os.getenv("AUTO_START_TRAP_RECEIVER", "true").lower() == "true"
 
+    # WebSocket internal UDP side-channel port (loopback only, not exposed)
+    # Worker subprocesses send trap datagrams here so the main process
+    # can broadcast real-time WS push events without shared memory.
+    WS_INTERNAL_PORT = int(os.getenv("WS_INTERNAL_PORT", "19876"))
+
     def __init__(self):
-        # Ensure directories exist
         self.DATA_DIR.mkdir(exist_ok=True)
         self.MIB_DIR.mkdir(exist_ok=True)
         self.CONFIG_DIR.mkdir(exist_ok=True)
         self.LOG_DIR.mkdir(exist_ok=True)
 
-        # Create default files if they don't exist
         if not self.CUSTOM_DATA_FILE.exists():
             self.CUSTOM_DATA_FILE.write_text('{}')
 
@@ -64,7 +66,6 @@ settings = Settings()
 
 
 class AppMeta:
-    # BUG-3 fix: read from settings instance (post-env-injection)
     NAME        = settings.APP_NAME
     VERSION     = settings.APP_VERSION
     AUTHOR      = settings.APP_AUTHOR
