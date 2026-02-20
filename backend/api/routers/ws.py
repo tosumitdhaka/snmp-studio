@@ -15,7 +15,8 @@ Server-push message types
 {"type": "full_state",                   -- sent once on connect
  "simulator": {...},
  "traps": {...},
- "stats": {...}}
+ "stats": {...},
+ "mibs": {loaded, failed, total, traps_available}}
 
 {"type": "status",                       -- sent on any lifecycle change
  "simulator": {...},
@@ -26,6 +27,9 @@ Server-push message types
 
 {"type": "stats",                        -- sent after any stats write
  "data": {simulator:{...}, traps:{...}, walker:{...}, mibs:{...}}}
+
+{"type": "mibs",                         -- sent after any MIB mutation
+ "mibs": {loaded, failed, total, traps_available}}
 """
 
 import logging
@@ -48,12 +52,21 @@ async def _build_full_state() -> dict:
     trap_status = trap_manager.get_status()
     stats       = stats_store.load()
 
+    mibs_summary = {"loaded": 0, "failed": 0, "total": 0, "traps_available": 0}
+
     # Enrich MIB stats with live counts (same as GET /api/stats/)
     try:
         mib_status = get_mib_service().get_status()
         stats["mibs"]["loaded_mibs"] = mib_status.get("loaded", 0)
         stats["mibs"]["failed_mibs"] = mib_status.get("failed", 0)
         stats["mibs"]["total_mibs"]  = mib_status.get("loaded", 0) + mib_status.get("failed", 0)
+        mibs_list = mib_status.get("mibs", []) or []
+        mibs_summary = {
+            "loaded":          mib_status.get("loaded", 0),
+            "failed":          mib_status.get("failed", 0),
+            "total":           mib_status.get("loaded", 0) + mib_status.get("failed", 0),
+            "traps_available": sum(m.get("traps", 0) for m in mibs_list),
+        }
     except Exception:
         pass
 
@@ -62,6 +75,7 @@ async def _build_full_state() -> dict:
         "simulator": sim_status,
         "traps":     trap_status,
         "stats":     stats,
+        "mibs":      mibs_summary,
     }
 
 

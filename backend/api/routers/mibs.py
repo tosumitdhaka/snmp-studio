@@ -11,6 +11,7 @@ Fixes:
 """
 
 import os
+import asyncio
 import logging
 import pathlib
 import tempfile
@@ -23,6 +24,7 @@ from services.sim_manager import SimulatorManager
 from services.trap_manager import trap_manager
 from core.config import settings
 from core import stats_store
+from core.ws_manager import manager
 
 router = APIRouter(prefix="/mibs", tags=["MIB Manager"])
 logger = logging.getLogger(__name__)
@@ -121,6 +123,26 @@ def _reload_dependents(sim_was_running: bool, trap_was_running: bool) -> dict:
         trap_msg = "Trap receiver restarted"
 
     return {"simulator": sim_msg, "trap_receiver": trap_msg}
+
+
+def _mibs_summary() -> dict:
+    """
+    Compact MIB summary for WS broadcasts.
+    Uses MibService.get_status() which includes per-module 'traps' counts.
+    """
+    status = get_mib_service().get_status()
+    mibs   = status.get("mibs", []) or []
+    return {
+        "loaded":          status.get("loaded", 0),
+        "failed":          status.get("failed", 0),
+        "total":           status.get("total", status.get("loaded", 0) + status.get("failed", 0)),
+        "traps_available": sum(m.get("traps", 0) for m in mibs),
+    }
+
+
+def _broadcast_mibs() -> None:
+    """Fire-and-forget WS broadcast after any MIB state change."""
+    asyncio.create_task(manager.broadcast({"type": "mibs", "mibs": _mibs_summary()}))
 
 
 # ==================== Endpoints ====================
@@ -225,6 +247,7 @@ async def upload_mibs(files: List[UploadFile] = File(...)):
                 result["error"]  = "MIB not found after reload"
 
         dep_msgs = _reload_dependents(sim_was_running, trap_was_running)
+        _broadcast_mibs()
         return {"results": results, **dep_msgs}
 
     except Exception as e:
@@ -233,7 +256,7 @@ async def upload_mibs(files: List[UploadFile] = File(...)):
 
 
 @router.post("/reload")
-def reload_mibs():
+async def reload_mibs():
     try:
         sim_was_running  = SimulatorManager.status().get("running", False)
         trap_was_running = trap_manager.get_status().get("running", False)
@@ -245,6 +268,7 @@ def reload_mibs():
         status   = mib_service.get_status()
         dep_msgs = _reload_dependents(sim_was_running, trap_was_running)
 
+        _broadcast_mibs()
         return {
             "status": "reloaded",
             "loaded": status["loaded"],
@@ -257,9 +281,11 @@ def reload_mibs():
 
 
 @router.delete("/{filename}")
-def delete_mib(filename: str):
+async def delete_mib(filename: str):
     if delete_mib_file(filename):
         stats_store.increment("mibs", "delete_count")
+        get_mib_service().reload()
+        _broadcast_mibs()
         return {"status": "deleted", "filename": filename}
     raise HTTPException(status_code=404, detail="File not found")
 
