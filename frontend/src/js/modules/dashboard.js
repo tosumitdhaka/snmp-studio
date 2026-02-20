@@ -1,101 +1,112 @@
 window.DashboardModule = {
-    refreshInterval: null,
-    lastLoadTime: null,
-    
-    init: function() {
-        this.loadStats();
-        // Refresh every 30 seconds
-        this.refreshInterval = setInterval(() => this.loadStats(), 30000);
-    },
-    
-    destroy: function() {
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-            this.refreshInterval = null;
+    _listeners: [],
+
+    init: function () {
+        this._registerListeners();
+        // Seed immediately: if WS already connected use REST MIB fallback only,
+        // otherwise do a full REST seed (WS not yet up on first paint).
+        if (window.WsClient && WsClient.isConnected()) {
+            this._loadMibsViaRest();
+        } else {
+            this._loadAllViaRest();
         }
     },
-    
-    loadStats: async function() {
-        this.lastLoadTime = Date.now();
-        
+
+    destroy: function () {
+        this._listeners.forEach(function (pair) {
+            window.removeEventListener(pair[0], pair[1]);
+        });
+        this._listeners = [];
+    },
+
+    _on: function (type, fn) {
+        window.addEventListener(type, fn);
+        this._listeners.push([type, fn]);
+    },
+
+    _registerListeners: function () {
+        var self = this;
+
+        // Full state on connect
+        this._on('trishul:ws:full_state', function (e) {
+            self._applyStatus(e.detail.simulator, e.detail.traps);
+            if (e.detail.mibs) self._applyMibs(e.detail.mibs);
+        });
+
+        // Lightweight status on lifecycle change (start/stop)
+        this._on('trishul:ws:status', function (e) {
+            self._applyStatus(e.detail.simulator, e.detail.traps);
+        });
+
+        // MIB mutation broadcast
+        this._on('trishul:ws:mibs', function (e) {
+            if (e.detail.mibs) self._applyMibs(e.detail.mibs);
+        });
+
+        // Re-seed MIBs via REST after every reconnect
+        // (full_state will re-apply status automatically)
+        this._on('trishul:ws:open', function () {
+            self._loadMibsViaRest();
+        });
+    },
+
+    _applyStatus: function (sim, trap) {
+        var simEl = document.getElementById('stat-simulator');
+        var recEl = document.getElementById('stat-receiver');
+
+        if (simEl) {
+            simEl.textContent = sim && sim.running ? 'Online' : 'Offline';
+            simEl.className   = 'mb-0 ' + (sim && sim.running ? 'text-success fw-bold' : 'text-secondary');
+        }
+        if (recEl) {
+            recEl.textContent = trap && trap.running ? 'Running' : 'Stopped';
+            recEl.className   = 'mb-0 ' + (trap && trap.running ? 'text-info fw-bold' : 'text-secondary');
+        }
+    },
+
+    _applyMibs: function (mibs) {
+        var mibEl  = document.getElementById('stat-mibs');
+        var trapEl = document.getElementById('stat-traps');
+        if (mibEl)  { mibEl.textContent  = mibs.loaded          != null ? mibs.loaded          : 0; mibEl.className  = 'mb-0'; }
+        if (trapEl) { trapEl.textContent = mibs.traps_available  != null ? mibs.traps_available : 0; trapEl.className = 'mb-0'; }
+    },
+
+    // Full REST fallback — used when WS is not yet connected on first paint
+    _loadAllViaRest: async function () {
         try {
-            // Fetch all stats in parallel
-            const [mibRes, simRes, trapRecRes] = await Promise.all([
-                fetch('/api/mibs/status').catch(() => null),
-                fetch('/api/simulator/status').catch(() => null),
-                fetch('/api/traps/status').catch(() => null)
+            var results = await Promise.all([
+                fetch('/api/mibs/status').catch(function ()  { return null; }),
+                fetch('/api/simulator/status').catch(function () { return null; }),
+                fetch('/api/traps/status').catch(function ()  { return null; })
             ]);
-            
-            // Update MIB count
+            var mibRes = results[0], simRes = results[1], trapRes = results[2];
+
+            if (simRes && simRes.ok && trapRes && trapRes.ok) {
+                this._applyStatus(await simRes.json(), await trapRes.json());
+            }
             if (mibRes && mibRes.ok) {
-                const mibData = await mibRes.json();
-                const loadedEl = document.getElementById('stat-mibs');
-                const trapCountEl = document.getElementById('stat-traps');
-                
-                if (loadedEl) {
-                    loadedEl.textContent = mibData.loaded || 0;
-                    loadedEl.className = 'mb-0';
-                }
-                
-                // Count traps from all loaded MIBs
-                if (trapCountEl && mibData.mibs) {
-                    const trapCount = mibData.mibs.reduce((sum, mib) => sum + (mib.traps || 0), 0);
-                    trapCountEl.textContent = trapCount;
-                    trapCountEl.className = 'mb-0';
-                }
-            } else {
-                this.showError('stat-mibs', 'Error');
-                this.showError('stat-traps', 'Error');
+                var d = await mibRes.json();
+                var trapsAvail = (d.mibs || []).reduce(function (s, m) { return s + (m.traps || 0); }, 0);
+                this._applyMibs({ loaded: d.loaded || 0, traps_available: trapsAvail });
             }
-            
-            // Update Simulator status
-            if (simRes && simRes.ok) {
-                const simData = await simRes.json();
-                const simEl = document.getElementById('stat-simulator');
-                if (simEl) {
-                    if (simData.running) {
-                        simEl.textContent = 'Online';
-                        simEl.className = 'mb-0 text-success fw-bold';
-                    } else {
-                        simEl.textContent = 'Offline';
-                        simEl.className = 'mb-0 text-secondary';
-                    }
-                }
-            } else {
-                this.showError('stat-simulator', 'Error');
-            }
-            
-            // Update Trap Receiver status
-            if (trapRecRes && trapRecRes.ok) {
-                const trapRecData = await trapRecRes.json();
-                const recEl = document.getElementById('stat-receiver');
-                if (recEl) {
-                    if (trapRecData.running) {
-                        recEl.textContent = 'Running';
-                        recEl.className = 'mb-0 text-info fw-bold';
-                    } else {
-                        recEl.textContent = 'Stopped';
-                        recEl.className = 'mb-0 text-secondary';
-                    }
-                }
-            } else {
-                this.showError('stat-receiver', 'Error');
-            }
-            
         } catch (e) {
-            console.error('Dashboard stats error:', e);
-            // Show generic error state
-            ['stat-mibs', 'stat-traps', 'stat-simulator', 'stat-receiver'].forEach(id => {
-                this.showError(id, 'N/A');
-            });
+            console.error('Dashboard REST fallback error:', e);
         }
     },
-    
-    showError: function(elementId, text) {
-        const el = document.getElementById(elementId);
-        if (el) {
-            el.textContent = text;
-            el.className = 'mb-0 text-danger';
-        }
+
+    // Partial REST fallback — MIBs only, used after WS reconnects
+    _loadMibsViaRest: async function () {
+        try {
+            var res = await fetch('/api/mibs/status');
+            if (!res.ok) return;
+            var d = await res.json();
+            var trapsAvail = (d.mibs || []).reduce(function (s, m) { return s + (m.traps || 0); }, 0);
+            this._applyMibs({ loaded: d.loaded || 0, traps_available: trapsAvail });
+        } catch (e) {}
+    },
+
+    showError: function (elementId, text) {
+        var el = document.getElementById(elementId);
+        if (el) { el.textContent = text; el.className = 'mb-0 text-danger'; }
     }
 };
