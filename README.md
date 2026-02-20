@@ -350,14 +350,14 @@ Trishul-SNMP is **100% free and open-source** (MIT License).
 
 ### 🚧 v1.3.0 (In Progress)
 - [ ] SNMPv3 authentication (MD5, SHA, AES)
-- [ ] Scheduled SNMP walks
-- [ ] Device/Agent management
+- [ ] Tree export to JSON/CSV
+- [ ] Dark mode
 
 ### 📋 Planned
-- [ ] Custom dashboard widgets
-- [ ] Dark mode
+- [ ] Scheduled SNMP walks
+- [ ] Device/Agent management
 - [ ] Multi-language support
-- [ ] Email/Slack/Webhook notifications
+      
 
 [Vote on features →](https://github.com/tosumitdhaka/trishul-snmp/issues)
 
