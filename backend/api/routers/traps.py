@@ -4,7 +4,10 @@ api/routers/traps.py
 SNMP trap send + receiver management endpoints.
 
 Bug fixes:
-  BUG-17: SnmpEngine() created as module-level singleton instead of per-request
+  BUG-17 : SnmpEngine() created as module-level singleton instead of per-request
+  Phase-11: broadcast stats after each successful trap send so the dashboard
+            trishul:ws:stats listener gets a live counter update instead of
+            waiting for the next WS reconnect / REST poll
 """
 
 import logging
@@ -43,6 +46,18 @@ class TrapStartRequest(BaseModel):
     resolve_mibs: bool = True
 
 
+async def _broadcast_stats() -> None:
+    """Push current stats snapshot to all WS clients."""
+    try:
+        from core.ws_manager import manager
+        await manager.broadcast({
+            "type": "stats",
+            "data": stats_store.load(),
+        })
+    except Exception as e:
+        logger.debug(f"[WS] broadcast_stats failed: {e}")
+
+
 @router.post("/send")
 async def send_trap(req: TrapSendRequest):
     """Send SNMP trap. OID MUST be numeric."""
@@ -64,13 +79,13 @@ async def send_trap(req: TrapSendRequest):
                     status_code=400,
                     detail=f"VarBind OID must be numeric: {vb.oid}"
                 )
-            if vb.type == "Integer":   val = Integer32(int(vb.value))
-            elif vb.type == "Counter": val = Counter32(int(vb.value))
-            elif vb.type == "Gauge":   val = Gauge32(int(vb.value))
-            elif vb.type == "OID":     val = ObjectIdentifier(str(vb.value))
+            if vb.type == "Integer":     val = Integer32(int(vb.value))
+            elif vb.type == "Counter":   val = Counter32(int(vb.value))
+            elif vb.type == "Gauge":     val = Gauge32(int(vb.value))
+            elif vb.type == "OID":       val = ObjectIdentifier(str(vb.value))
             elif vb.type == "IpAddress": val = IpAddress(str(vb.value))
             elif vb.type == "TimeTicks": val = TimeTicks(int(vb.value))
-            else:                      val = OctetString(str(vb.value))
+            else:                        val = OctetString(str(vb.value))
             notification.addVarBinds(ObjectType(ObjectIdentity(vb.oid), val))
 
         target = await UdpTransportTarget.create((req.target, req.port))
@@ -90,6 +105,7 @@ async def send_trap(req: TrapSendRequest):
             raise HTTPException(status_code=500, detail=f"SNMP Error: {errorStatus.prettyPrint()}")
 
         stats_store.increment("traps", "traps_sent_total")
+        await _broadcast_stats()   # live counter update to dashboard
         logger.info("Trap sent successfully")
         return {"status": "sent", "target": req.target, "port": req.port}
 

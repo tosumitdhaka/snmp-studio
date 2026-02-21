@@ -13,6 +13,8 @@ Fixes:
   Phase-10: GET /status now returns uptime_seconds (int), requests and
             last_activity surfaced from stats_store so frontend metrics
             panel is fully populated
+  Phase-11: _enrich_sim_status() extracted so ws.py can import it without
+            duplicating the enrichment logic (fixes WS ImportError crash)
 """
 
 import os
@@ -59,6 +61,28 @@ def _record_stop_stats() -> None:
     })
 
 
+def _enrich_sim_status() -> dict:
+    """
+    Return SimulatorManager.status() enriched with uptime_seconds and
+    persisted stats counters (requests, last_activity).
+
+    Extracted from the GET /status endpoint so that ws.py can import and
+    call it directly without duplicating the enrichment logic.
+    Both GET /simulator/status and the WS full_state / status payloads
+    go through this single function.
+    """
+    status = SimulatorManager.status()
+    if status.get("running") and _sim_start_time:
+        delta = datetime.now(timezone.utc) - _sim_start_time
+        status["uptime_seconds"] = int(delta.total_seconds())
+    else:
+        status["uptime_seconds"] = None
+    s = stats_store.load()
+    status["requests"]      = s["simulator"]["snmp_requests_served"]
+    status["last_activity"] = s["simulator"].get("last_request_at")
+    return status
+
+
 async def _broadcast_status() -> None:
     """Push current simulator+trap status to all WS clients."""
     try:
@@ -66,7 +90,7 @@ async def _broadcast_status() -> None:
         from services.trap_manager import trap_manager
         await manager.broadcast({
             "type":      "status",
-            "simulator": SimulatorManager.status(),
+            "simulator": _enrich_sim_status(),
             "traps":     trap_manager.get_status(),
         })
     except Exception as e:
@@ -110,17 +134,7 @@ def _restart_simulator_with_stats() -> dict:
 
 @router.get("/status")
 def get_status():
-    status = SimulatorManager.status()
-    if status.get("running") and _sim_start_time:
-        delta = datetime.now(timezone.utc) - _sim_start_time
-        status["uptime_seconds"] = int(delta.total_seconds())
-    else:
-        status["uptime_seconds"] = None
-    # Surface persisted counters so the frontend metrics panel is fully populated
-    s = stats_store.load()
-    status["requests"]      = s["simulator"]["snmp_requests_served"]
-    status["last_activity"] = s["simulator"].get("last_request_at")
-    return status
+    return _enrich_sim_status()
 
 
 @router.post("/start")
