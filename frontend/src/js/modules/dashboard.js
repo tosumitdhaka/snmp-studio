@@ -3,14 +3,12 @@ window.DashboardModule = {
 
     init: function () {
         this._registerListeners();
-        // Seed immediately: if WS already connected use REST fallbacks only,
-        // otherwise do a full REST seed (WS not yet up on first paint).
-        if (window.WsClient && WsClient.isConnected()) {
-            this._loadMibsViaRest();
-            this._loadStatsViaRest();
-        } else {
-            this._loadAllViaRest();
-        }
+        // Always seed via REST on every page navigation.  On a page switch
+        // the WS is already connected and trishul:ws:full_state was sent
+        // before this module's listeners were registered, so we cannot rely
+        // on WS events for the initial paint.  WS events then take over for
+        // live updates.
+        this._loadAllViaRest();
     },
 
     destroy: function () {
@@ -50,11 +48,10 @@ window.DashboardModule = {
             if (e.detail.data) self._applyStats(e.detail.data);
         });
 
-        // Re-seed MIBs + stats via REST after every reconnect
-        // (full_state will re-apply status automatically on reconnect)
+        // Re-seed everything via REST after every WS reconnect
+        // (full_state arrives moments later but REST is faster for status)
         this._on('trishul:ws:open', function () {
-            self._loadMibsViaRest();
-            self._loadStatsViaRest();
+            self._loadAllViaRest();
         });
     },
 
@@ -119,37 +116,34 @@ window.DashboardModule = {
         }
     },
 
-    // Full REST fallback — used when WS is not yet connected on first paint
-    _loadAllViaRest: async function () {
+    // ---------------------------------------------------------------------------
+    // REST helpers
+    // ---------------------------------------------------------------------------
+
+    // Full REST seed — calls the three focused helpers in parallel.
+    // Used on init() and on every WS reconnect.
+    _loadAllViaRest: function () {
+        this._loadStatusViaRest();
+        this._loadMibsViaRest();
+        this._loadStatsViaRest();
+    },
+
+    // Simulator + trap-receiver running state
+    _loadStatusViaRest: async function () {
         try {
             var results = await Promise.all([
-                fetch('/api/mibs/status').catch(function ()      { return null; }),
                 fetch('/api/simulator/status').catch(function () { return null; }),
-                fetch('/api/traps/status').catch(function ()     { return null; }),
-                fetch('/api/stats/').catch(function ()           { return null; })
+                fetch('/api/traps/status').catch(function ()     { return null; })
             ]);
-            var mibRes   = results[0];
-            var simRes   = results[1];
-            var trapRes  = results[2];
-            var statsRes = results[3];
-
+            var simRes  = results[0];
+            var trapRes = results[1];
             if (simRes && simRes.ok && trapRes && trapRes.ok) {
                 this._applyStatus(await simRes.json(), await trapRes.json());
             }
-            if (mibRes && mibRes.ok) {
-                var d = await mibRes.json();
-                var trapsAvail = (d.mibs || []).reduce(function (s, m) { return s + (m.traps || 0); }, 0);
-                this._applyMibs({ loaded: d.loaded || 0, traps_available: trapsAvail });
-            }
-            if (statsRes && statsRes.ok) {
-                this._applyStats(await statsRes.json());
-            }
-        } catch (e) {
-            console.error('Dashboard REST fallback error:', e);
-        }
+        } catch (e) {}
     },
 
-    // Partial REST fallback — MIBs only, used after WS reconnects
+    // MIB loaded + traps-available counts
     _loadMibsViaRest: async function () {
         try {
             var res = await fetch('/api/mibs/status');
@@ -160,7 +154,7 @@ window.DashboardModule = {
         } catch (e) {}
     },
 
-    // Stats REST fallback — used after WS reconnects
+    // All activity counters
     _loadStatsViaRest: async function () {
         try {
             var res = await fetch('/api/stats/');
