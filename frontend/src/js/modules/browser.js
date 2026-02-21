@@ -24,6 +24,13 @@ window.BrowserModule = {
         const filterType = sessionStorage.getItem('browserFilterType');
         
         if (searchOid) {
+            // Clear any pending restore state — previous session's tree selection
+            // must not conflict with this new programmatic search.  The node being
+            // searched may not be in the (unexpanded) tree yet, which would trigger
+            // a spurious "Could not find node" console.warn.
+            this.pendingSelectedOid   = null;
+            this.pendingExpandedNodes = [];
+
             document.getElementById('browser-search-input').value = searchOid;
             
             if (filterType) {
@@ -254,17 +261,8 @@ window.BrowserModule = {
                 }
             }
         } else {
-            console.warn(`Could not find node to restore: ${this.pendingSelectedOid}`);
-            const panel = document.getElementById('browser-details-panel');
-            if (panel) {
-                panel.innerHTML = `
-                    <div class="text-center text-muted p-5">
-                        <i class="fas fa-info-circle fa-3x mb-3"></i>
-                        <p>Previous selection not available</p>
-                        <p class="small">Select an OID from the tree to view details</p>
-                    </div>
-                `;
-            }
+            // Node not found — clear silently, no console.warn needed
+            this.pendingSelectedOid = null;
         }
     },
 

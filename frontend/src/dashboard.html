@@ -79,12 +79,15 @@
         <h6 class="mb-0 text-muted fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.08em;">
             <i class="fas fa-chart-bar me-1"></i> Activity Stats
         </h6>
+        <!-- Reset Stats button: intentionally hidden until DELETE /api/stats/ backend
+             endpoint is implemented. Keep the JS (DashboardModule.resetStats) in place.
         <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2"
                 style="font-size: 0.7rem;"
                 onclick="DashboardModule.resetStats()"
                 title="Reset all cumulative counters">
             <i class="fas fa-undo-alt me-1"></i> Reset
         </button>
+        -->
     </div>
 
     <!-- Simulator: SNMP Requests -->
@@ -198,8 +201,8 @@
                         <div class="text-muted mb-0" style="font-size: 0.7rem;">MIBs Uploaded</div>
                         <h5 class="mb-0 fw-bold" id="act-mibs-uploaded">—</h5>
                     </div>
-                    <div class="bg-purple bg-opacity-10 p-2 rounded">
-                        <i class="fas fa-upload text-purple"></i>
+                    <div class="bg-secondary bg-opacity-10 p-2 rounded">
+                        <i class="fas fa-upload text-secondary"></i>
                     </div>
                 </div>
             </div>
@@ -215,8 +218,8 @@
                         <div class="text-muted mb-0" style="font-size: 0.7rem;">Times Reloaded</div>
                         <h5 class="mb-0 fw-bold" id="act-mibs-reloaded">—</h5>
                     </div>
-                    <div class="bg-purple bg-opacity-10 p-2 rounded">
-                        <i class="fas fa-sync text-purple"></i>
+                    <div class="bg-secondary bg-opacity-10 p-2 rounded">
+                        <i class="fas fa-sync text-secondary"></i>
                     </div>
                 </div>
             </div>

@@ -12,13 +12,23 @@ window.TrishulUtils = {
      * Returns strings like: 'just now', '34s ago', '5m ago', '2h ago',
      * '3d ago', or a locale date string for anything older than a week.
      *
-     * @param {string|null} dateString  ISO 8601 timestamp (or null/undefined)
+     * Edge cases handled:
+     *   null / undefined / ''  → '--'
+     *   Unix epoch (0 ms)      → '--'  (backend returns 0 for "never received")
+     *   NaN / unparseable      → '--'
+     *
+     * @param {string|number|null} dateString  ISO 8601 timestamp, Unix ms, or null
      * @returns {string}
      */
     formatRelativeTime: function(dateString) {
-        if (!dateString) return '--';
+        if (!dateString && dateString !== 0) return '--';
         try {
-            const date    = new Date(dateString);
+            const date   = new Date(dateString);
+            const timeMs = date.getTime();
+
+            // Treat unparseable dates or Unix epoch as "never"
+            if (isNaN(timeMs) || timeMs < 1000) return '--';
+
             const now     = new Date();
             const diffMs  = now - date;
             const diffSec = Math.floor(diffMs / 1000);
