@@ -109,32 +109,6 @@ window.SimulatorModule = {
         }
     },
 
-    // ==================== Relative Time Formatting ====================
-
-    formatRelativeTime: function(dateString) {
-        if (!dateString) return '--';
-        
-        try {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffSec = Math.floor(diffMs / 1000);
-            const diffMin = Math.floor(diffSec / 60);
-            const diffHour = Math.floor(diffMin / 60);
-            const diffDay = Math.floor(diffHour / 24);
-
-            if (diffSec < 5) return 'just now';
-            if (diffSec < 60) return `${diffSec}s ago`;
-            if (diffMin < 60) return `${diffMin}m ago`;
-            if (diffHour < 24) return `${diffHour}h ago`;
-            if (diffDay < 7) return `${diffDay}d ago`;
-            
-            return date.toLocaleDateString();
-        } catch (e) {
-            return '--';
-        }
-    },
-
     attachEditorEvents: function() {
         const editor = document.getElementById('custom-data-editor');
         const unsaved = document.getElementById('unsaved-indicator');
@@ -338,17 +312,17 @@ window.SimulatorModule = {
     },
 
     updateUI: function(data) {
-        const badge = document.getElementById('sim-badge');
-        const stateText = document.getElementById('sim-state-text');
+        const badge      = document.getElementById('sim-badge');
+        const stateText  = document.getElementById('sim-state-text');
         const detailText = document.getElementById('sim-detail-text');
-        const metrics = document.getElementById('sim-metrics');
-        const uptimeEl = document.getElementById('sim-uptime');
-        const reqEl = document.getElementById('sim-requests');
-        const lastActEl = document.getElementById('sim-last-activity');
+        const metrics    = document.getElementById('sim-metrics');
+        const uptimeEl   = document.getElementById('sim-uptime');
+        const reqEl      = document.getElementById('sim-requests');
+        const lastActEl  = document.getElementById('sim-last-activity');
         const configHint = document.getElementById('config-hint');
         const configDisabledHint = document.getElementById('config-disabled-hint');
-        const portInput = document.getElementById('sim-config-port');
-        const commInput = document.getElementById('sim-config-comm');
+        const portInput  = document.getElementById('sim-config-port');
+        const commInput  = document.getElementById('sim-config-comm');
 
         if (!badge || !stateText || !detailText) return;
 
@@ -375,9 +349,12 @@ window.SimulatorModule = {
 
             if (metrics && uptimeEl && reqEl && lastActEl) {
                 metrics.classList.remove('d-none');
-                uptimeEl.textContent = data.uptime || '--';
-                reqEl.textContent = data.requests || 0;
-                lastActEl.textContent = this.formatRelativeTime(data.last_activity);
+                // uptime_seconds (int) → compact human duration via TrishulUtils
+                uptimeEl.textContent  = TrishulUtils.formatUptime(data.uptime_seconds);
+                // requests: populated from stats_store.simulator.snmp_requests_served
+                reqEl.textContent     = data.requests ?? 0;
+                // last_activity: ISO ts from stats_store → relative time via TrishulUtils
+                lastActEl.textContent = TrishulUtils.formatRelativeTime(data.last_activity);
             }
         } else {
             badge.className = 'badge bg-secondary';
@@ -407,14 +384,14 @@ window.SimulatorModule = {
     },
 
     setButtons: function(isRunning) {
-        const btnStart = document.getElementById('btn-start');
-        const btnStop = document.getElementById('btn-stop');
+        const btnStart   = document.getElementById('btn-start');
+        const btnStop    = document.getElementById('btn-stop');
         const btnRestart = document.getElementById('btn-restart');
 
         if (!btnStart || !btnStop || !btnRestart) return;
 
-        btnStart.disabled = isRunning;
-        btnStop.disabled = !isRunning;
+        btnStart.disabled   = isRunning;
+        btnStop.disabled    = !isRunning;
         btnRestart.disabled = !isRunning;
     },
 
@@ -422,17 +399,17 @@ window.SimulatorModule = {
         const area = document.getElementById('sim-log-area');
         const time = new Date().toLocaleTimeString();
 
-        let icon = 'fa-info-circle';
+        let icon  = 'fa-info-circle';
         let color = 'text-muted';
 
         if (type === 'success') {
-            icon = 'fa-check-circle';
+            icon  = 'fa-check-circle';
             color = 'text-success';
         } else if (type === 'error') {
-            icon = 'fa-exclamation-circle';
+            icon  = 'fa-exclamation-circle';
             color = 'text-danger';
         } else if (type === 'warning') {
-            icon = 'fa-exclamation-triangle';
+            icon  = 'fa-exclamation-triangle';
             color = 'text-warning';
         }
 
@@ -470,9 +447,9 @@ window.SimulatorModule = {
 
     exportLog: function() {
         const blob = new Blob([this.getPlainLogText()], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
         a.download = `trishul-simulator-log-${new Date().toISOString()}.txt`;
         a.click();
         URL.revokeObjectURL(url);
@@ -486,14 +463,14 @@ window.SimulatorModule = {
     },
 
     filterLogs: function() {
-        const searchInput = document.getElementById('log-search');
+        const searchInput  = document.getElementById('log-search');
         const filterSelect = document.getElementById('log-filter');
-        const area = document.getElementById('sim-log-area');
+        const area         = document.getElementById('sim-log-area');
 
         if (!area) return;
 
         const searchTerm = (searchInput?.value || '').toLowerCase();
-        const level = filterSelect?.value || 'all';
+        const level      = filterSelect?.value || 'all';
 
         const div = document.createElement('div');
         div.innerHTML = window.AppState.logs.join('');
@@ -501,8 +478,8 @@ window.SimulatorModule = {
 
         const filtered = Array.from(entries).filter(e => {
             const entryLevel = e.getAttribute('data-level') || 'info';
-            const text = (e.getAttribute('data-text') || '').toLowerCase();
-            const matchesLevel = level === 'all' || entryLevel === level;
+            const text       = (e.getAttribute('data-text') || '').toLowerCase();
+            const matchesLevel  = level === 'all' || entryLevel === level;
             const matchesSearch = !searchTerm || text.includes(searchTerm);
             return matchesLevel && matchesSearch;
         });
@@ -519,7 +496,7 @@ window.SimulatorModule = {
 
     updateLogStats: function(filteredCount) {
         const stats = document.getElementById('log-stats');
-        const total = window.AppState.logs ? window.AppState.logs.length : 0;
+        const total   = window.AppState.logs ? window.AppState.logs.length : 0;
         const current = typeof filteredCount === 'number' ? filteredCount : total;
 
         if (stats) {
@@ -530,22 +507,22 @@ window.SimulatorModule = {
     showToast: function(message, type = 'success') {
         const banner = document.createElement('div');
         let icon = 'fa-check-circle';
-        let cls = 'alert-success';
+        let cls  = 'alert-success';
 
         if (type === 'error') {
             icon = 'fa-exclamation-circle';
-            cls = 'alert-danger';
+            cls  = 'alert-danger';
         } else if (type === 'info') {
             icon = 'fa-info-circle';
-            cls = 'alert-info';
+            cls  = 'alert-info';
         } else if (type === 'warning') {
             icon = 'fa-exclamation-triangle';
-            cls = 'alert-warning';
+            cls  = 'alert-warning';
         }
 
-        banner.className = `alert ${cls} alert-dismissible fade show position-fixed`;
+        banner.className  = `alert ${cls} alert-dismissible fade show position-fixed`;
         banner.style.cssText = 'top: 80px; right: 20px; z-index: 9999;';
-        banner.innerHTML = `
+        banner.innerHTML  = `
             <i class="fas ${icon} me-2"></i> ${this.escapeHtml(message)}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
@@ -556,9 +533,9 @@ window.SimulatorModule = {
     escapeHtml: function(text) {
         if (text == null) return '';
         return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
+            .replace(/&/g,  '&amp;')
+            .replace(/</g,  '&lt;')
+            .replace(/>/g,  '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
     }
