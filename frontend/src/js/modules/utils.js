@@ -70,4 +70,36 @@ window.TrishulUtils = {
         const h = Math.floor((seconds % 86400) / 3600);
         return h > 0 ? `${d}d ${h}h` : `${d}d`;
     },
+
+    /**
+     * Show a dismissible toast-style notification banner at top-right.
+     * Auto-removes after `duration` ms.
+     *
+     * Replaces the per-module showNotification copies in walker.js,
+     * mibs.js, and browser.js — call as TrishulUtils.showNotification(...).
+     *
+     * @param {string} message   Text to display (HTML is allowed)
+     * @param {string} type      'info' | 'success' | 'error' | 'warning'
+     * @param {number} duration  Auto-dismiss delay in ms (default 3000)
+     */
+    showNotification: function(message, type, duration) {
+        type     = type     || 'info';
+        duration = duration || 3000;
+
+        var icon = 'fa-info-circle';
+        var cls  = 'alert-info';
+
+        if      (type === 'success') { icon = 'fa-check-circle';         cls = 'alert-success'; }
+        else if (type === 'error')   { icon = 'fa-exclamation-circle';   cls = 'alert-danger';  }
+        else if (type === 'warning') { icon = 'fa-exclamation-triangle'; cls = 'alert-warning'; }
+
+        var banner = document.createElement('div');
+        banner.className = 'alert ' + cls + ' alert-dismissible fade show position-fixed';
+        banner.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px; max-width: 420px;';
+        banner.innerHTML =
+            '<i class="fas ' + icon + ' me-2"></i>' + message +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+        document.body.appendChild(banner);
+        setTimeout(function() { if (banner.parentNode) banner.remove(); }, duration);
+    },
 };

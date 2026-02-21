@@ -73,6 +73,157 @@
     </div>
 </div>
 
+<!-- Activity Stats Row -->
+<div class="row mb-3">
+    <div class="col-12 mb-2 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 text-muted fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.08em;">
+            <i class="fas fa-chart-bar me-1"></i> Activity Stats
+        </h6>
+        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                style="font-size: 0.7rem;"
+                onclick="DashboardModule.resetStats()"
+                title="Reset all cumulative counters">
+            <i class="fas fa-undo-alt me-1"></i> Reset
+        </button>
+    </div>
+
+    <!-- Simulator: SNMP Requests -->
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card card-bordered shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted mb-0" style="font-size: 0.7rem;">SNMP Requests</div>
+                        <h5 class="mb-0 fw-bold" id="act-snmp-requests">—</h5>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-2 rounded">
+                        <i class="fas fa-microchip text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulator: OIDs Loaded -->
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card card-bordered shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted mb-0" style="font-size: 0.7rem;">OIDs Loaded</div>
+                        <h5 class="mb-0 fw-bold" id="act-oids-loaded">—</h5>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-2 rounded">
+                        <i class="fas fa-server text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Traps: Received -->
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card card-bordered shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted mb-0" style="font-size: 0.7rem;">Traps Received</div>
+                        <h5 class="mb-0 fw-bold" id="act-traps-recv">—</h5>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-2 rounded">
+                        <i class="fas fa-satellite-dish text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Traps: Sent -->
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card card-bordered shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted mb-0" style="font-size: 0.7rem;">Traps Sent</div>
+                        <h5 class="mb-0 fw-bold" id="act-traps-sent">—</h5>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-2 rounded">
+                        <i class="fas fa-paper-plane text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Walker: Walks Executed -->
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card card-bordered shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted mb-0" style="font-size: 0.7rem;">Walks Executed</div>
+                        <h5 class="mb-0 fw-bold" id="act-walks">—</h5>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-2 rounded">
+                        <i class="fas fa-walking text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Walker: OIDs Returned -->
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card card-bordered shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted mb-0" style="font-size: 0.7rem;">OIDs Returned</div>
+                        <h5 class="mb-0 fw-bold" id="act-oids-returned">—</h5>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-2 rounded">
+                        <i class="fas fa-list text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MIBs: Uploaded -->
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card card-bordered shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted mb-0" style="font-size: 0.7rem;">MIBs Uploaded</div>
+                        <h5 class="mb-0 fw-bold" id="act-mibs-uploaded">—</h5>
+                    </div>
+                    <div class="bg-purple bg-opacity-10 p-2 rounded">
+                        <i class="fas fa-upload text-purple"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MIBs: Reloaded -->
+    <div class="col-6 col-md-3 mb-2">
+        <div class="card card-bordered shadow-sm h-100">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted mb-0" style="font-size: 0.7rem;">Times Reloaded</div>
+                        <h5 class="mb-0 fw-bold" id="act-mibs-reloaded">—</h5>
+                    </div>
+                    <div class="bg-purple bg-opacity-10 p-2 rounded">
+                        <i class="fas fa-sync text-purple"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Quick Actions -->
 <div class="row">
     <div class="col-12">
