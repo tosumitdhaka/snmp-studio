@@ -13,14 +13,14 @@ Server response:  server replies text "pong"
 Server-push message types
 --------------------------
 {"type": "full_state",                   -- sent once on connect
- "simulator": {...},
- "traps": {...},
+ "simulator": {...},                      -- enriched: includes uptime_seconds, requests, last_activity
+ "traps": {...},                          -- includes uptime_seconds
  "stats": {...},
  "mibs": {loaded, failed, total, traps_available}}
 
 {"type": "status",                       -- sent on any lifecycle change
- "simulator": {...},
- "traps": {...}}
+ "simulator": {...},                      -- enriched
+ "traps": {...}}                          -- includes uptime_seconds
 
 {"type": "trap",                         -- sent when a new trap arrives
  "trap": {timestamp, source, trap_type, varbinds, resolved}}
@@ -44,11 +44,11 @@ logger = logging.getLogger(__name__)
 
 async def _build_full_state() -> dict:
     """Assemble a full_state payload from live service status + persisted stats."""
-    from services.sim_manager import SimulatorManager
+    from api.routers.simulator import _enrich_sim_status
     from services.trap_manager import trap_manager
     from services.mib_service import get_mib_service
 
-    sim_status  = SimulatorManager.status()
+    sim_status  = _enrich_sim_status()
     trap_status = trap_manager.get_status()
     stats       = stats_store.load()
 
@@ -81,11 +81,11 @@ async def _build_full_state() -> dict:
 
 def _build_status_payload() -> dict:
     """Assemble a status payload (lightweight — no stats)."""
-    from services.sim_manager import SimulatorManager
+    from api.routers.simulator import _enrich_sim_status
     from services.trap_manager import trap_manager
     return {
         "type":      "status",
-        "simulator": SimulatorManager.status(),
+        "simulator": _enrich_sim_status(),
         "traps":     trap_manager.get_status(),
     }
 

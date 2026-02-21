@@ -13,7 +13,8 @@ Thread safety:
   - API process: _lock (threading.Lock) guards all reads + writes.
   - Worker subprocesses (snmp_simulator, trap_receiver): they write directly
     to the JSON file using atomic rename (tempfile + os.replace) via
-    worker_increment() / worker_set_field() to avoid partial-write corruption.
+    worker_increment() / worker_set_field() / worker_update_fields() to avoid
+    partial-write corruption.
   - Cross-process safety relies on os.replace() being atomic on POSIX.
 """
 
@@ -48,6 +49,7 @@ DEFAULT_STATS: dict = {
         "total_oids_simulated": 0,   # cumulative OIDs served (GET + GETNEXT)
         "snmp_requests_served": 0,   # cumulative SNMP requests handled
         "simulator_run_seconds": 0,  # cumulative seconds simulator was running
+        "last_request_at": None,     # ISO timestamp of last SNMP request handled
     },
     "traps": {
         "receiver_start_count": 0,
@@ -223,3 +225,30 @@ def worker_update_module(stats_file: str, module: str, updates: dict) -> None:
         _worker_save(stats_file, stats)
     except Exception:
         pass
+
+
+def worker_update_fields(
+    stats_file: str,
+    module: str,
+    increments: dict = None,
+    sets: dict = None,
+) -> None:
+    """
+    Atomically apply counter increments AND absolute field sets in one
+    read-modify-write cycle. Preferred over calling worker_increment +
+    worker_set_field separately (halves the number of file writes).
+
+      increments: {key: delta}   – adds delta to the stored counter value
+      sets:       {key: value}   – overwrites the field directly (timestamps, gauges)
+    """
+    try:
+        stats = _worker_load(stats_file)
+        stats.setdefault(module, {})
+        if increments:
+            for key, delta in increments.items():
+                stats[module][key] = stats[module].get(key, 0) + delta
+        if sets:
+            stats[module].update(sets)
+        _worker_save(stats_file, stats)
+    except Exception:
+        pass  # never crash a worker over stats

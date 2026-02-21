@@ -5,6 +5,7 @@ import json
 import logging
 import asyncio
 import argparse
+from datetime import datetime, timezone
 
 # Add parent directory to path so app modules (core.config, stats_store) are importable
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,7 +16,7 @@ from pysnmp.carrier.asyncio.dgram import udp
 from pysnmp.smi import builder, compiler
 from pysnmp.proto.api import v2c
 from core.config import settings
-from core.stats_store import worker_increment, worker_set_field
+from core.stats_store import worker_update_fields, worker_set_field
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
@@ -72,12 +73,24 @@ class MockController:
         self.db = data_dict
         self.sorted_oids = sorted(self.db.keys())
 
+    def _record_request(self, n_oids: int) -> None:
+        """Single atomic write: increment request/OID counters + set last_request_at."""
+        worker_update_fields(
+            STATS_FILE,
+            "simulator",
+            increments={
+                "snmp_requests_served": 1,
+                "total_oids_simulated": n_oids,
+            },
+            sets={
+                "last_request_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
     def read_variables(self, *var_binds, **kwargs):
         """Handle SNMP GET requests."""
         logger.debug(f"RX GET: {var_binds}")
-        n = len(var_binds)
-        worker_increment(STATS_FILE, "simulator", "snmp_requests_served", 1)
-        worker_increment(STATS_FILE, "simulator", "total_oids_simulated", n)
+        self._record_request(len(var_binds))
         rsp = []
         for oid, val in var_binds:
             key = tuple(oid)
@@ -90,9 +103,7 @@ class MockController:
     def read_next_variables(self, *var_binds, **kwargs):
         """Handle SNMP GETNEXT/WALK requests."""
         logger.debug(f"RX WALK/NEXT: {var_binds}")
-        n = len(var_binds)
-        worker_increment(STATS_FILE, "simulator", "snmp_requests_served", 1)
-        worker_increment(STATS_FILE, "simulator", "total_oids_simulated", n)
+        self._record_request(len(var_binds))
         rsp = []
         for oid, val in var_binds:
             current_oid = tuple(oid)

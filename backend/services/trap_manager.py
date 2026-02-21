@@ -8,6 +8,7 @@ Bug fixes applied:
   BUG-9  : get_status() uses self._port instead of hardcoded 1162
   BUG-10 : clear_traps() uses context manager (no file handle leak)
   Phase-9: broadcast status after start / stop
+  Phase-10: get_status() includes uptime_seconds
 """
 
 import asyncio
@@ -49,9 +50,10 @@ class TrapManager:
         try:
             from core.ws_manager import manager
             from services.sim_manager import SimulatorManager
+            from api.routers.simulator import _enrich_sim_status
             payload = {
                 "type":      "status",
-                "simulator": SimulatorManager.status(),
+                "simulator": _enrich_sim_status(),
                 "traps":     self.get_status(),
             }
             loop = asyncio.get_event_loop()
@@ -126,11 +128,17 @@ class TrapManager:
 
     def get_status(self):
         running = self.process is not None and self.process.poll() is None
+        uptime_seconds = None
+        if running and self._start_time:
+            uptime_seconds = int(
+                (datetime.now(timezone.utc) - self._start_time).total_seconds()
+            )
         return {
-            "running":      running,
-            "pid":          self.process.pid if running else None,
-            "port":         self._port,
-            "resolve_mibs": self.resolve_mibs if running else None,
+            "running":        running,
+            "pid":            self.process.pid if running else None,
+            "port":           self._port,
+            "resolve_mibs":   self.resolve_mibs if running else None,
+            "uptime_seconds": uptime_seconds,
         }
 
     def get_traps(self, limit: int = 50):
